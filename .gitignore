@@ -1,0 +1,5 @@
+node_modules
+*.log
+.vscode/settings.json
+.editorconfig
+.vscode/launch.json

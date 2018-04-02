@@ -1,0 +1,11 @@
+{
+  "presets": [["es2015", { "modules": false }], "stage-0", "react"],
+  "env": {
+    "production": {
+      "presets": ["minify"],
+      "minified": true,
+      "compact": true
+    },
+    "plugins": ["react-hot-loader/babel",  "transform-runtime"]
+  }  
+}
