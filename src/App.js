@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 // import { connect } from 'react-redux';
 // import { bindActionCreators } from 'redux';
-// import Header from './components/Header';
+import Header from './components/Header';
 // import Sidebar from './components/Sidebar';
 // import Main from './components/Main';
 // import MyTheme from './Theme';
@@ -17,9 +17,7 @@ class App extends Component {
     
     return (
       <MuiThemeProvider>
-        <div>
-          Hello World
-        </div>        
+        <Header />        
       </MuiThemeProvider>
     );
   }
