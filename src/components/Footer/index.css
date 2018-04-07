@@ -1,0 +1,9 @@
+a {
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.b-footer__link-headling {
+  padding-right: 10px;
+}

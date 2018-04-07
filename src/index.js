@@ -15,12 +15,10 @@ import { AppContainer } from 'react-hot-loader';
 
 const render = Component => {
   ReactDOM.render(
-    <AppContainer>
-      <Router>
-        <Component />
-      </Router>
-    </AppContainer>,
-  document.getElementById('root')
+    <Router>
+      <Component />
+    </Router>,
+    document.getElementById('root')
   )
 }
 // const username = window.location.pathname.split('/')[2];
@@ -39,7 +37,17 @@ const render = Component => {
   
 // };
 
-render(App);
+// covering App component with AppContainer for hot modules replacement for React in development
+const AppToRender = process.env.NODE_ENV === 'development' ?
+() => (
+  <AppContainer>
+    <App />
+  </AppContainer>
+)
+: () => (
+  <App />
+)
+render(AppToRender);
 
 if (module.hot) {
   module.hot.accept('./App', () => {

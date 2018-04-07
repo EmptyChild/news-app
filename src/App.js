@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 // import { connect } from 'react-redux';
 // import { bindActionCreators } from 'redux';
 import Header from './components/Header';
-// import Sidebar from './components/Sidebar';
-// import Main from './components/Main';
+import Main from './components/Main';
+import Footer from './components/Footer';
 // import MyTheme from './Theme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 // import getMuiTheme from 'material-ui/styles/getMuiTheme';
@@ -17,7 +17,9 @@ class App extends Component {
     
     return (
       <MuiThemeProvider>
-        <Header />        
+        <Header />
+        <Main />
+        <Footer />        
       </MuiThemeProvider>
     );
   }
