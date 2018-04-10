@@ -1,0 +1,13 @@
+a.read-more {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  font-weight: 500;
+}
+
+.views-container {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  color: gray;
+}
