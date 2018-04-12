@@ -54,7 +54,7 @@ export default class Article extends Component {
             title={articleData.title}
             subtitle={articleData.author}/>
           <CardText>
-            {articleData.description}
+            {articleData.description}<br />
             <a 
               href={articleData.url} 
               target='_blank'

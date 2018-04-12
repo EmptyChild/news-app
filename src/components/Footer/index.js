@@ -8,7 +8,12 @@ export default class Header extends Component {
     return (
       <footer>
         <AppBar
-          title={<React.Fragment><span className='b-footer__link-headling'>Contact us:</span>  <a href='mailto:nikkita1992@gamil.com'>nikkita1992@mail.ru</a></React.Fragment>}
+          title={
+            <React.Fragment>
+              <span className='b-footer__link-headling'>Contact us:</span>  
+              <a href='mailto:nikkita1992@mail.ru'>nikkita1992@mail.ru</a>
+            </React.Fragment>
+          }
           titleStyle={{
             width: '100%',
             maxWidth: '1200px', 
