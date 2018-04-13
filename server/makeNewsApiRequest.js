@@ -4,6 +4,7 @@ const https = require('https');
 const defaultOptions = {
   apiKey: '90a1c979bcb14acc868d6c829fe5bda7',
   sources: ['bbc-news', 'bloomberg', 'entertainment-weekly', 'ign', 'wired'].join(','),
+  language: 'en'
 }
 
 module.exports = function makeNewsApiRequest(options) {

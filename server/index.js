@@ -25,9 +25,9 @@ app.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, '../','/dist/index.html'))
 });
 
-app.get('/api/get-articles*', function(req, res, next) {
-  // before giving a response to user we should convince that we have at least 20 articles stored in our db
-  Article.count().then((count) => {
+app.get('/api/get-articles*', function firstServerLaunchCheck(req, res, next) {
+  // before giving a response to user we should convince that we have articles stored in our db
+  Article.count().then(function countArticlesInDb(count)  {
     //console.log(count)
     if (count >= 20) {
       if(!lastUpdateAt) {
@@ -36,18 +36,19 @@ app.get('/api/get-articles*', function(req, res, next) {
         */
         return Article.find().sort('-publishedAt').limit(1).exec();
       }
-      // if amount of articles in db is fine, and we have information about last update of articles, stoping execution of promises chain
+      // if amount of articles in db is fine, and we have information about last update of articles, stop execution of promises chain
       return Promise.reject();
     } else {
-      // if amount of articles is not enough, just drop collection
+      // if it is first start of the server, and there is no articles in db, 
+      // or we have just put some there manually, just drop articles collection
       return Article.deleteMany().exec();        
     }
   })
-  .then((article) => {
+  .then(function assignLastUpdateAt(article) {
     //console.log(article);
     // checking that we actually found an article from db
     if (article && article[0] && article[0].publishedAt) {
-      // adding 1 sec offset to prevent diplicate articles
+      // adding 1 sec offset to prevent duplicate articles
       lastUpdateAt = new Date(article[0].publishedAt.getTime() + 1000);
       //console.log(lastUpdateAt);
       // after assigning last update time, stop execution of promises chain
@@ -55,12 +56,12 @@ app.get('/api/get-articles*', function(req, res, next) {
     }
     return Promise.resolve();    
   })
-  .then(() => {
-    // after droping collection make a new request to news api for articles
+  .then(function makeFirstRequestToNewsApi() {
+    // after droping collection make a new request to NewsApi for articles
     logger.info('Making request to news api')
     return makeNewsApiRequest();
   })
-  .then((jsonResponse) => {
+  .then(function parseJSON(jsonResponse) {
     try {
       let newsApiResponse = JSON.parse(jsonResponse);
       return newsApiResponse;
@@ -70,7 +71,7 @@ app.get('/api/get-articles*', function(req, res, next) {
       return Promise.reject(error)
     }
   })
-  .then((parsedResponse) => {
+  .then(function insertArticlesIntoDb(parsedResponse) {
     if (parsedResponse.status === 'ok') {            
       lastUpdateAt = new Date();    
       let articles = parsedResponse.articles.map( (article) => {
@@ -88,18 +89,20 @@ app.get('/api/get-articles*', function(req, res, next) {
       return Promise.reject(error);
     }
   })
-  .then((articles) => {
-    articles.map((article) => {
+  .then(function increaseViews(articles) {
+    return articles.map((article) => {
       article.numberOfViews += 1;
       article.save((err) => {
         if(err) {
           logger.error(err);
         }
       })
-    });
-    res.json(articles);     
+    });         
   })
-  .catch(err => {
+  .then(function sendResponse(articles) {
+    res.json(articles);
+  })
+  .catch(function processErrorAndProcede(err) {
     // if we stopping promises chain execution with error, response to user with error
     if(err) {        
       logger.error(err);
@@ -118,59 +121,99 @@ app.get('/api/get-articles/1', function(req, res, next) {
   if(lastUpdateAt instanceof Date && (Date.now() - lastUpdateAt.getTime()) >= 60000) {
     // formating lastUpdateTime to ISO format, adding 1 sec offset to prevent diplicate articles
     const options = {
-      from: oldestArticleDate = lastUpdateAt.toISOString().slice(0,-5),
+      from: lastUpdateAt.toISOString().slice(0,-5),
       pageSize: 100
     };
+
     makeNewsApiRequest(options).then((jsonResponse) => {
       try {
         let parsedResponse = JSON.parse(jsonResponse);
         if (parsedResponse.status === 'ok') {            
-          lastUpdateAt = new Date();    
-          let articles = parsedResponse.articles;
-          const totalResults = parsedResponse.totalResults;
-          // if we have more than 100 fresh news, fetch the rest of them
-          if (totalResults > 100) {
-            // we have already fetched page 1, so we starting from page 2
-            for (let i = 2; i < Math.ceil(totalResults / 100); i++) {
-              const options = {
-                from: oldestArticleDate = lastUpdateAt.toISOString().slice(0,-5),
-                pageSize: 100,
-                page: i
-              }
-              makeNewsApiRequest(options).then((jsonresponse) => {
-                try {
-                  let parsedResponse = JSON.parse(jsonResponse);
-                  articles.push(parsedResponse.articles)
-                } catch (error) {
-                  error.statusMessage = 'Problem with parsing JSON response';
-                  error.statusCode = 500;
-                  return Promise.reject(error)
-                }
-              })
-            }
-          }
-          // after getting all fresh news from news api we store them in our db with "liked" and "numberOfVews" fields          
-          articles = articles.map( (article) => {
-            // converting a String date of publication to Date object
-            return {
-              ...article,
-              publishedAt: new Date(article.publishedAt)
-            };
-          });
-          return Article.insertMany(articles);
-        } else if(parsedResponse.status === 'error') {
+          lastUpdateAt = new Date();
+          return parsedResponse;
+          } else if(parsedResponse.status === 'error') {
           const error = new Error(parsedResponse.message);
           error.statusCode = 502;
           return Promise.reject(error);
         }
-        //return parsedResponse;
       } catch (error) {
         error.statusMessage = 'Problem with parsing JSON response';
         error.statusCode = 500;
         return Promise.reject(error)
       }
     })
+    .then((parsedResponse) => {
+      const totalResults = parsedResponse.totalResults;
+      console.log(totalResults);
+      // if we have more than 100 fresh news, fetch the rest of them
+      if (totalResults > 20) {
+        // we have already fetched page 1, so we starting from page 2
+        //let promisesArray = [parsedResponse.articles];
+        let promise = Promise.resolve();
+        for (let i = 2; i <= Math.ceil(totalResults / 20); i++) {
+          const pagesOptions = {
+            ...options,
+            page: i
+          }
+          // making a queue of requests, to put request result into db without waiting all of them will be completed
+          promise = promise.then(() => {
+            console.log(`fetchig page ${i} of fresh news`)
+            return makeNewsApiRequest(pagesOptions).then((jsonResponse) => {
+              console.log(`Recived part ${i} of fresh news`);
+              try {
+                let parsedResp = JSON.parse(jsonResponse);
+                if (parsedResp.status === 'error') {
+                  return Promise.reject(new Error(parsedResp.message));
+                }
+                return parsedResp;
+              } catch (error) {
+                error.statusMessage = 'Problem with parsing JSON response';
+                error.statusCode = 500;
+                return Promise.reject(error)
+              }
+            })
+            .then((parsedResp) => {
+              let articles = parsedResp.articles;
+              articles = articles.map( (article) => {
+              // converting a String date of publication to Date object
+                return {
+                  ...article,
+                  publishedAt: new Date(article.publishedAt)
+                };
+              });
+              return Article.insertMany(articles);
+            })
+            .then((articles) => {
+              console.log(`Successfully put part ${i} of fresh news in db`);
+              return Promise.resolve();
+            })
+            .catch((err) => {
+              if (err) {
+                logger.error(err);
+              }
+              return Promise.resolve();
+            })
+          })
+        }
+      }
+      // returning first 100 fresh news for further processing
+      return parsedResponse;
+        
+    })
+    .then((parsedResponse) => {
+      let articles = parsedResponse.articles;
+      // after getting all fresh news from news api we store them in our db with "liked" and "numberOfVews" fields          
+      articles = articles.map( (article) => {
+        // converting a String date of publication to Date object
+        return {
+          ...article,
+          publishedAt: new Date(article.publishedAt)
+        };
+      });
+      return Article.insertMany(articles);
+    })
     .then(() => {
+      console.log(`Successfully put part first part of fresh news in db`);
       next();
     })
     .catch(err => {
@@ -188,7 +231,7 @@ app.get('/api/get-articles/1', function(req, res, next) {
   }
 })
 
-app.use('/api/get-articles/:pagenumber', function(req, res, next) {
+app.get('/api/get-articles/:pagenumber', function(req, res, next) {
   const pagenumber = req.params.pagenumber;
   Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec().then((articles) => {
         // console.log(articles);
