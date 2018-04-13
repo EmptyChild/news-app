@@ -13,11 +13,13 @@ const ArticleSchema = Schema({
   },
   title: {
   type: String,
-  required: true
+  required: true,
+  unique: true
   },
   description: {
     type: String,
     required: true,
+    unique: true
   },
   publishedAt: {
     type: Date,
@@ -25,7 +27,8 @@ const ArticleSchema = Schema({
   },  
   url: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   urlToImage: String,
   liked: {

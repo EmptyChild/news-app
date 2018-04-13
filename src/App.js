@@ -7,19 +7,17 @@ import Footer from './components/Footer';
 // import MyTheme from './Theme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 // import getMuiTheme from 'material-ui/styles/getMuiTheme';
-import { withRouter } from 'react-router-dom';
 // import actions from './actions';
 
 
 class App extends Component {
 
   render() {
-    
     return (
       <MuiThemeProvider>
         <div>
           <Header />
-          <Main />
+          <Main articles={this.props.articles}/>
           <Footer />
         </div>        
       </MuiThemeProvider>
@@ -39,4 +37,4 @@ class App extends Component {
 //   }
 // }
 
-export default withRouter(App);
+export default App;

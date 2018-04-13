@@ -7,7 +7,6 @@ import 'webpack-hot-middleware/client';
 import App from './App';
 import './index.css'
 // import { Provider } from 'react-redux';
-import {BrowserRouter as Router}  from 'react-router-dom';
 import { AppContainer } from 'react-hot-loader';
 // import configureStore from './store/configureStore';
 
@@ -15,42 +14,38 @@ import { AppContainer } from 'react-hot-loader';
 
 const render = Component => {
   ReactDOM.render(
-    <Router>
-      <Component />
-    </Router>,
+      <Component />,
     document.getElementById('root')
   )
 }
-// const username = window.location.pathname.split('/')[2];
-// const xhr = new XMLHttpRequest();
-// xhr.open('GET', `/api/users/${username}`, true);
-// xhr.send();
-// xhr.onreadystatechange = function () {
-//   if (this.readyState !== 4) {
-//     return;
-//   }
-//   if (this.status !== 200) {
-//     return;
-//   }
-  
-//   render(App);
-  
-// };
 
-// covering App component with AppContainer for hot modules replacement for React in development
-const AppToRender = process.env.NODE_ENV === 'development' ?
-() => (
-  <AppContainer>
-    <App />
-  </AppContainer>
-)
-: () => (
-  <App />
-)
+let AppToRender;
+fetch('/api/get-articles/1')
+.then((res) => {
+  return res.json();
+})
+.then((parsedRes) => {
+
+  // covering App component with AppContainer for hot modules replacement for React in development
+  AppToRender = process.env.NODE_ENV === 'development' ?
+  () => {
+    return (
+      <AppContainer>
+        <App articles={parsedRes}/>
+      </AppContainer>
+    );
+  }
+  : () => {
+    return (
+      <App articles={parsedRes}/>
+    );
+  };
 render(AppToRender);
+})
+
 
 if (module.hot) {
   module.hot.accept('./App', () => {
-    render(App)
+    render(AppToRender)
   })
 }

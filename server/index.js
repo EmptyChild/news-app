@@ -202,7 +202,9 @@ app.get('/api/get-articles/1', function(req, res, next) {
     })
     .then((parsedResponse) => {
       let articles = parsedResponse.articles;
-      // after getting all fresh news from news api we store them in our db with "liked" and "numberOfVews" fields          
+      // checking that we actually have fresh news
+      if(articles.length) {
+        // after getting first 100 fresh news from news api we store them in our db with "liked" and "numberOfVews" fields          
       articles = articles.map( (article) => {
         // converting a String date of publication to Date object
         return {
@@ -211,9 +213,12 @@ app.get('/api/get-articles/1', function(req, res, next) {
         };
       });
       return Article.insertMany(articles);
+      }
+      // if we have no fresh news, stop execution of promises chain
+      return Promise.reject();
     })
     .then(() => {
-      console.log(`Successfully put part first part of fresh news in db`);
+      console.log(`Putting fresh news in db`);
       next();
     })
     .catch(err => {
@@ -228,6 +233,8 @@ app.get('/api/get-articles/1', function(req, res, next) {
         next();
       }
     })
+  } else {
+    next();
   }
 })
 

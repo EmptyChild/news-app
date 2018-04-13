@@ -11,3 +11,7 @@ a.read-more {
   justify-content: end;
   color: gray;
 }
+
+.article {
+  margin-bottom: 10px;
+}
