@@ -265,7 +265,8 @@ app.get('/api/get-articles/:pagenumber', function(req, res, next) {
   .then((article) => {
     // formating Date of the oldest article in db to ISO format, adding 1 sec offset to prevent diplicate articles
     const options = {
-      to: oldestArticleDate = new Date(article[0].publishedAt.getTime() - 1000).toISOString().slice(0,-5)
+      to: oldestArticleDate = new Date(article[0].publishedAt.getTime() - 1000).toISOString().slice(0,-5),
+      pageSize: 100
     }
     return makeNewsApiRequest(options);
   })
@@ -299,7 +300,8 @@ app.get('/api/get-articles/:pagenumber', function(req, res, next) {
     }
   })
   .then((articles) => {
-    articles.map((article) => {
+    let articlesToReturn = articles.slice(0, 20)
+    articlesToReturn.map((article) => {
       article.numberOfViews += 1;
       article.save((err) => {
         if(err) {
@@ -307,7 +309,7 @@ app.get('/api/get-articles/:pagenumber', function(req, res, next) {
         }
       })
     })
-    res.json(articles);     
+    res.json(articlesToReturn);     
   })
   .catch((err) => {
     if(err) {
