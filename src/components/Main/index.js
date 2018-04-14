@@ -9,7 +9,7 @@ export default class Main extends Component {
     this.state = {
       articles: this.props.articles,
       page: 1,
-      fetchingArticles: false
+      fetchingArticles: true
     }
   }
 
@@ -44,7 +44,17 @@ export default class Main extends Component {
 
   componentDidMount() {
     
-    window.onscroll = this.updateArticlesOnScroll;
+    //window.onscroll = this.updateArticlesOnScroll;
+  }
+
+  static getDerivedStateFromProps(nextProps, prevState) {
+    if(!prevState.articles.length && nextProps.articles.length) {
+      return {
+        articles: nextProps.articles,
+        fetchingArticles: false
+      };
+    }
+    return null;
   }
 
   render() {

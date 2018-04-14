@@ -8,13 +8,31 @@ import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
 
 class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      articles: []
+    };
+  }
+
+  componentDidMount() {
+    fetch('/api/get-articles/1')
+    .then((res) => {
+      return res.json();
+    })
+    .then((parsedRes) => {
+      this.setState({
+        articles: parsedRes
+      })
+    })
+  }
 
   render() {
     return (
       <MuiThemeProvider>
         <div>
           <Header />
-          <Main articles={this.props.articles}/>
+          <Main articles={this.state.articles}/>
           <Footer />
         </div>        
       </MuiThemeProvider>

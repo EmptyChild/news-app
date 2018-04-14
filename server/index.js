@@ -258,6 +258,7 @@ app.get('/api/get-articles/:pagenumber', function(req, res, next) {
       })
     })
     res.json(articles);
+    
     // if we successfully returned response for user, stopin execution of promises chain
     return Promise.reject();
   })

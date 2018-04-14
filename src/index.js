@@ -15,30 +15,20 @@ const render = Component => {
   )
 }
 
-let AppToRender;
-fetch('/api/get-articles/1')
-.then((res) => {
-  return res.json();
-})
-.then((parsedRes) => {
-
-  // covering App component with AppContainer for hot modules replacement for React in development
-  AppToRender = process.env.NODE_ENV === 'development' ?
-  () => {
-    return (
-      <AppContainer>
-        <App articles={parsedRes}/>
-      </AppContainer>
-    );
-  }
-  : () => {
-    return (
-      <App articles={parsedRes}/>
-    );
-  };
+let AppToRender = process.env.NODE_ENV === 'development' ?
+() => {
+  return (
+    <AppContainer>
+      <App />
+    </AppContainer>
+  );
+}
+: () => {
+  return (
+    <App />
+  );
+};
 render(AppToRender);
-})
-
 
 if (module.hot) {
   module.hot.accept('./App', () => {
