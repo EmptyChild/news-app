@@ -12,25 +12,56 @@ class App extends Component {
     super(props);
     this.state = {
       articles: [],
+      filteredArticles: [],
       page: 1,
       fetchingArticles: true,
-      filter: ''
+      filter: '',
+      searchErrorMessage: false
     }
   }
 
-  submitFilterChange = (value) => {
+  fetchArticlesUntillEnoughToRender = (filterValue, page, articles, filteredArticles) => {
+    console.log(page)
+    if(filteredArticles.length < 10 && page <= 499) {
+      
+      const nextPage = page + 1;
+      this.fetchArticles(nextPage, (parsedRes) => {
+        const newArticles = articles.concat(parsedRes);
+        const newFilteredArticles = newArticles.filter((article) => {
+          return article.title.toLowerCase().includes(filterValue) || article.description.toLowerCase().includes(filterValue);
+        });
+        this.fetchArticlesUntillEnoughToRender(filterValue, nextPage, newArticles, newFilteredArticles);
+      })
+    } else {
+      this.setState({
+        articles: articles,
+        filteredArticles: filteredArticles,
+        fetchingArticles: false,
+        searchErrorMessage: page > 499 ? true : false,
+        page
+      })
+    }
+  }
+
+  submitFilterChange = (filterValue) => {
     this.setState({
-      filter: value
+      filter: filterValue.toLowerCase(),
+      filteredArticles: [],
+      fetchingArticles: true
     });
+  
+    let filteredArticles = this.state.articles.filter((article) => {
+      return article.title.toLowerCase().includes(filterValue) || article.description.toLowerCase().includes(filterValue);
+    });
+    this.fetchArticlesUntillEnoughToRender(filterValue.toLowerCase(), this.state.page, this.state.articles, filteredArticles);
   }
 
   componentDidMount() {
     this.fetchArticles(1, (parsedRes) => {
-      this.setState((prevState) => {
-        return {
-          articles: prevState.articles.concat(parsedRes),
-          fetchingArticles: false
-        };
+      this.setState({
+        articles: parsedRes,
+        filteredArticles: parsedRes,
+        fetchingArticles: false
       })
       window.onscroll = this.updateArticlesOnScroll;
     })
@@ -53,21 +84,33 @@ class App extends Component {
       document.body.clientHeight, document.documentElement.clientHeight
     );
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    if(scrollTop/pageHeight >= 0.8 && !this.state.fetchingArticles) {
+    if(scrollTop/pageHeight >= 0.7 && !this.state.fetchingArticles) {
+      console.log(this.state.page + 1)
       this.setState({
         fetchingArticles: true
       });
-      this.fetchArticles(this.state.page + 1, (parsedRes) => {
-        if(parsedRes.length) {
+      if (this.state.page < 499) {
+        this.fetchArticles(this.state.page + 1, (parsedRes) => {
           this.setState((prevState) => {
+            const newArticles = prevState.articles.concat(parsedRes);
+            const newFilteredArticles = prevState.filteredArticles.concat(parsedRes.filter((article) => {
+              return article.title.includes(prevState.filter) || article.description.includes(prevState.filter);
+            }));
             return {
-              articles: prevState.articles.concat(parsedRes),
+              articles: newArticles,
+              filteredArticles: newFilteredArticles,
               page: prevState.page + 1,
               fetchingArticles: false
             };
           })
-        }
-      })
+        })
+      } else {
+        this.setState({
+          fetchingArticles: false,
+          searchErrorMessage: true,
+        })
+      }
+      
     }
   }
 
@@ -80,8 +123,9 @@ class App extends Component {
             searchDisabled={this.state.fetchingArticles}/>
           <Main 
           filter=''
-          articles={this.state.articles}
-          fetchingArticles={this.state.fetchingArticles}/>
+          articles={this.state.filteredArticles}
+          fetchingArticles={this.state.fetchingArticles}
+          searchErrorMessage={this.state.searchErrorMessage}/>
           <Footer />
         </div>        
       </MuiThemeProvider>

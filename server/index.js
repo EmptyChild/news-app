@@ -293,7 +293,7 @@ app.get('/api/get-articles/:pagenumber', function(req, res, next) {
       // after getting news from news api we store them in our db with "liked" and "numberOfVews" fields     
       return Article.insertMany(articles);
     } else if(parsedResponse.status === 'error') {
-      const error = new Error(fullResponse.message);
+      const error = new Error(parsedResponse.message);
       error.type = 'newsApiResponseError';
       error.statusCode = 502;
       return Promise.reject(error);
