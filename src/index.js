@@ -1,16 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-// import './index.css';
 import 'react-hot-loader/patch'
 import 'babel-polyfill';
 import 'webpack-hot-middleware/client';
 import App from './App';
-import './index.css'
-// import { Provider } from 'react-redux';
+import './index.css';
 import { AppContainer } from 'react-hot-loader';
-// import configureStore from './store/configureStore';
 
-// let initialState;
 
 const render = Component => {
   ReactDOM.render(

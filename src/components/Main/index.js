@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import './index.css';
-import Article from '../Article'
+import Article from '../Article';
+import Spinner from '../Spinner';
 
 export default class Main extends Component {
   constructor(props) {
@@ -56,10 +57,7 @@ export default class Main extends Component {
     });
     const spinner = this.state.fetchingArticles ?
     (
-      <div className='spinner-container'>
-        <span>Loading...</span>
-        <div className='donut'></div>
-      </div>
+      <Spinner />
     ) : null;
     return (
       <main className='main'>
