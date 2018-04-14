@@ -4,6 +4,22 @@ import TextField from 'material-ui/TextField';
 import RaisedButton from 'material-ui/RaisedButton';
 
 export default class Main extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      filterValue: ''
+    }
+  }
+
+  handleFilterInputChange = (evt) => {
+    this.setState({
+      filterValue: evt.target.value
+    })
+  }
+
+  handleSearchClick = () => {
+    this.props.submitFilterChange(this.state.filterValue);
+  }
 
   render() {
     return (
@@ -20,8 +36,13 @@ export default class Main extends Component {
             justifyContent: 'start'
           }}>
           <ToolbarTitle text='Filter' />
-          <TextField hintText='Input keywords to filter articles' />
-          <RaisedButton label='SEARCH'/>
+          <TextField
+            type='search' 
+            hintText='Input keywords to filter articles'
+            onChange={this.handleFilterInputChange} />
+          <RaisedButton 
+            label='SEARCH'
+            onClick={this.handleSearchClick}/>
         </ToolbarGroup>
       </Toolbar>
     );

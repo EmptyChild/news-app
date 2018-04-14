@@ -13,8 +13,15 @@ class App extends Component {
     this.state = {
       articles: [],
       page: 1,
-      fetchingArticles: true
+      fetchingArticles: true,
+      filter: ''
     }
+  }
+
+  submitFilterChange = (value) => {
+    this.setState({
+      filter: value
+    });
   }
 
   componentDidMount() {
@@ -68,7 +75,7 @@ class App extends Component {
     return (
       <MuiThemeProvider>
         <div>
-          <Header />
+          <Header submitFilterChange={this.submitFilterChange}/>
           <Main 
           filter=''
           articles={this.state.articles}
