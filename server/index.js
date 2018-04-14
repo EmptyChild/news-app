@@ -146,14 +146,13 @@ app.get('/api/get-articles/1', function(req, res, next) {
       const totalResults = parsedResponse.totalResults;
       console.log(totalResults);
       // if we have more than 100 fresh news, fetch the rest of them
-      if (totalResults > 20) {
+      if (totalResults > 100) {
         // we have already fetched page 1, so we starting from page 2
-        //let promisesArray = [parsedResponse.articles];
         let promise = Promise.resolve();
-        for (let i = 2; i <= Math.ceil(totalResults / 20); i++) {
+        for (let i = 2; i <= Math.ceil(totalResults / 100); i++) {
           const pagesOptions = {
             ...options,
-            page: i
+            page: i,  
           }
           // making a queue of requests, to put request result into db without waiting all of them will be completed
           promise = promise.then(() => {
@@ -174,14 +173,17 @@ app.get('/api/get-articles/1', function(req, res, next) {
             })
             .then((parsedResp) => {
               let articles = parsedResp.articles;
-              articles = articles.map( (article) => {
-              // converting a String date of publication to Date object
-                return {
-                  ...article,
-                  publishedAt: new Date(article.publishedAt)
-                };
-              });
-              return Article.insertMany(articles);
+              if(articles.length) {
+                articles = articles.map( (article) => {
+                  // converting a String date of publication to Date object
+                  return {
+                    ...article,
+                    publishedAt: new Date(article.publishedAt)
+                  };
+                });
+                return Article.insertMany(articles);
+              }
+              return Promise.reject();
             })
             .then((articles) => {
               console.log(`Successfully put part ${i} of fresh news in db`);

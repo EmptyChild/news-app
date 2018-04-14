@@ -53,8 +53,7 @@ export default class Article extends Component {
         <Card>
           <CardHeader
             title={article.source.name}
-            subtitle={publicationDate}/>
-          {articlePicture}
+            subtitle={publicationDate}/>          
           <CardTitle 
             title={article.title}
             subtitle={article.author}/>
@@ -66,6 +65,7 @@ export default class Article extends Component {
               className='read-more'>
               Read more</a>
           </CardText>
+          {articlePicture}
           <CardActions
             style={{
               display: 'flex',
