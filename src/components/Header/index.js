@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import AppBar from 'material-ui/AppBar';
 import './index.css';
+import Filter from '../Filter'
 
 export default class Header extends Component {
 
@@ -20,6 +21,7 @@ export default class Header extends Component {
             alignItems: 'center'}}
           iconStyleLeft={{display: 'none'}}>
         </AppBar>
+        <Filter />
       </header>
     );
   }
