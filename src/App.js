@@ -75,7 +75,9 @@ class App extends Component {
     return (
       <MuiThemeProvider>
         <div>
-          <Header submitFilterChange={this.submitFilterChange}/>
+          <Header 
+            submitFilterChange={this.submitFilterChange}
+            searchDisabled={this.state.fetchingArticles}/>
           <Main 
           filter=''
           articles={this.state.articles}

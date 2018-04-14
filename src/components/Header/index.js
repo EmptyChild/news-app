@@ -21,7 +21,9 @@ export default class Header extends Component {
             alignItems: 'center'}}
           iconStyleLeft={{display: 'none'}}>
         </AppBar>
-        <Filter submitFilterChange={this.props.submitFilterChange}/>
+        <Filter 
+          submitFilterChange={this.props.submitFilterChange}
+          searchDisabled={this.props.searchDisabled}/>
       </header>
     );
   }
