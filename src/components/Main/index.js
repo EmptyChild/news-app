@@ -7,12 +7,26 @@ export default class Main extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      articles: this.props.articles,
+      articles: [],
       page: 1,
       fetchingArticles: true
     }
   }
 
+  componentDidMount() {
+    fetch('/api/get-articles/1')
+    .then((res) => {
+      return res.json();
+    })
+    .then((parsedRes) => {
+      this.setState({
+        articles: parsedRes,
+        fetchingArticles: false
+      })
+      window.onscroll = this.updateArticlesOnScroll;
+    })
+  }
+  
   updateArticlesOnScroll = () => {
     const pageHeight = Math.max(
       document.body.scrollHeight, document.documentElement.scrollHeight,
@@ -40,21 +54,6 @@ export default class Main extends Component {
         }
       })
     }
-  }
-
-  componentDidMount() {
-    
-    //window.onscroll = this.updateArticlesOnScroll;
-  }
-
-  static getDerivedStateFromProps(nextProps, prevState) {
-    if(!prevState.articles.length && nextProps.articles.length) {
-      return {
-        articles: nextProps.articles,
-        fetchingArticles: false
-      };
-    }
-    return null;
   }
 
   render() {
