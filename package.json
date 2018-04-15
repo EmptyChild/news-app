@@ -2,11 +2,11 @@
   "name": "news-app",
   "version": "1.0.0",
   "description": "Test task for SmartexLab",
-  "main": "runServer.js",
+  "main": "server/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "set NODE_ENV=development&& nodemon runServer.js",
-    "start": "node runServer.js",
+    "dev": "set NODE_ENV=development&& nodemon server/index.js",
+    "start": "node server/index.js",
     "build": "set NODE_ENV=production&& webpack --config webpack.prod.config.js"
   },
   "nodemonConfig": {

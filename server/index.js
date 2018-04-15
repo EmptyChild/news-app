@@ -1,10 +1,18 @@
 const express = require('express');
 // const bodyParser = require('body-parser');
 // const session = require('express-session');
+
+const webpack = require('webpack');
+const webpackDevMiddleware = require('webpack-dev-middleware');
+const webpackHotMiddleware = require('webpack-hot-middleware');
+const config = require('../webpack.dev.config');
+const PORT = process.env.PORT || 3000;
+
 const logger = require('./logger');
 const path = require('path');
 const Article = require('./ArticleModel');
 const makeNewsApiRequest = require('./makeNewsApiRequest');
+
 // const favicon = require('serve-favicon');
 var app = express();
 
@@ -20,6 +28,7 @@ var app = express();
 // app.use(passport.session());
 
 let lastUpdateAt;
+let oldestArticleDate;
 
 app.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, '../','/dist/index.html'))
@@ -291,13 +300,16 @@ app.get('/api/get-articles/:pagenumber', function(req, res, next) {
         };
       });
       // after getting news from news api we store them in our db with "liked" and "numberOfVews" fields     
-      return Article.insertMany(articles);
+      return Article.insertMany(articles, { ordered: false});
     } else if(parsedResponse.status === 'error') {
       const error = new Error(parsedResponse.message);
       error.type = 'newsApiResponseError';
       error.statusCode = 502;
       return Promise.reject(error);
     }
+  })
+  .then(() => {
+    return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
   })
   .then((articles) => {
     let articlesToReturn = articles.slice(0, 20)
@@ -343,5 +355,21 @@ app.post('/api/like/:articleId', function(req, res, next) {
 //   res.redirect('/');
 // });
 
-module.exports = app;
 
+
+
+
+if(process.env.NODE_ENV === 'development') {  
+  const compiler = webpack(config);
+  app.use(webpackDevMiddleware(compiler, { noInfo: true, publicPath: config.output.publicPath }));
+  app.use(webpackHotMiddleware(compiler));
+}
+app.use(express.static(path.join(__dirname, '../','/dist')))
+
+app.listen(PORT, function(error) {
+  if (error) {
+    console.error(error)
+  } else {
+    console.info("==> 🌎  Listening on port %s. Open up http://localhost:%s/ in your browser.", PORT, PORT)
+  }
+})
