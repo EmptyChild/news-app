@@ -3,7 +3,7 @@ import {Toolbar, ToolbarGroup, ToolbarTitle} from 'material-ui/Toolbar';
 import TextField from 'material-ui/TextField';
 import RaisedButton from 'material-ui/RaisedButton';
 
-export default class Main extends Component {
+export default class HeaderPanel extends Component {
   constructor(props) {
     super(props);
     this.state = {

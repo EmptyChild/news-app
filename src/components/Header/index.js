@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import AppBar from 'material-ui/AppBar';
 import './index.css';
-import Filter from '../Filter'
+import HeaderPanel from '../HeaderPanel'
 
 export default class Header extends Component {
 
@@ -21,7 +21,7 @@ export default class Header extends Component {
             alignItems: 'center'}}
           iconStyleLeft={{display: 'none'}}>
         </AppBar>
-        <Filter 
+        <HeaderPanel 
           submitFilterChange={this.props.submitFilterChange}
           searchDisabled={this.props.searchDisabled}/>
       </header>
