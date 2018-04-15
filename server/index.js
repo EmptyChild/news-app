@@ -47,24 +47,17 @@ function parseJSON(jsonResponse) {
     return Promise.reject(error)
   }
 }
-
-function insertArticlesIntoDb(parsedResponse) {
-  if (parsedResponse.status === 'ok') {            
-    if(parsedResponse.articles.length) {          
-      let articles = parsedResponse.articles.map( (article) => {
+function processParsedResponse(parsedResponse) {
+  if (parsedResponse.status === 'ok') {           
+    let articles = parsedResponse.articles.map( (article) => {
       // converting a String date of publication to Date object
       return {
         ...article,
         publishedAt: new Date(article.publishedAt)
       };
-    });
-    logger.info('Putting articles in db');
-    // after getting news from news api we store them in our db with "liked" and "numberOfVews" fields     
-    return Article.insertMany(articles, { ordered: false });
-    } else {
-      logger.info('No news to put in db')
-      return Promise.resolve([]);
-    }
+    });    
+    return parsedResponse;
+    
   } else if(parsedResponse.status === 'error') {
     const error = new Error(parsedResponse.message);
     error.statusCode = 502;
@@ -73,6 +66,24 @@ function insertArticlesIntoDb(parsedResponse) {
     const error = new Error('Invalid JSON Response');
     error.statusCode = 502;
     return Promise.reject(error);
+  }
+}
+
+function insertArticlesIntoDb(parsedResponse) {           
+  if(parsedResponse.articles.length) {          
+    let articles = parsedResponse.articles.map( (article) => {
+    // converting a String date of publication to Date object
+    return {
+      ...article,
+      publishedAt: new Date(article.publishedAt)
+    };
+  });
+  logger.info('Putting articles in db');
+  // after getting news from news api we store them in our db with "liked" and "numberOfVews" fields     
+  return Article.insertMany(articles, { ordered: false });
+  } else {
+    logger.info('No news to put in db')
+    return Promise.resolve([]);
   }
 }
 
@@ -104,18 +115,20 @@ function processError(err) {
   }
 }
 
-function fetchNewArticles() {
-  const options = {
-    from: lastUpdateAt.toISOString().slice(0,-5),
-    pageSize: 100
-  };
-  logger.info('Making request to NewsApi for fresh news')
+function fetchFreshArticlesPage(options) {  
+  logger.info('Making request to NewsApi')
   return makeNewsApiRequest(options)
-  .then(parseJSON)    
+  .then(parseJSON)
+  .then(processParsedResponse)    
   .then(insertArticlesIntoDb)
-  .then(updateLastUdpateAtDate)
-  .catch(processError);
-}
+  .catch(function processFreshArticlesPageError(err) {
+    if(err) {
+      logger.error(`Error while fetchin part ${i} of fresh news`)
+      logger.error(err)
+    }
+  });
+};
+
 
 function startServer() {
 
@@ -126,8 +139,7 @@ function startServer() {
     Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec().then((articles) => {
       if(articles.length === 0) {
         /* if user requests more articles than we stored in db,
-          continue Promises chain to feth older articles */
-        //return Article.find().sort('publishedAt').limit(1).exec()
+          continue Promises chain to fetch older articles */
         return Promise.resolve();
       }
       increaseViews(articles);
@@ -137,7 +149,7 @@ function startServer() {
       // if we successfully returned response for user, stopin execution of promises chain
       return Promise.reject();
     })
-    .then((article) => {
+    .then(function fetchOlderArticles() {
       // formating Date of the oldest article in db to ISO format, adding 1 sec offset to prevent diplicate articles
       const options = {
         to: new Date(oldestArticleDate.getTime() - 1000).toISOString().slice(0,-5),
@@ -148,6 +160,7 @@ function startServer() {
     })
     .then(parseJSON)
     .then(updateOldestArticleDate)
+    .then(processParsedResponse)
     .then(insertArticlesIntoDb)
     .then(() => {
       return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
@@ -186,7 +199,19 @@ function startServer() {
     })
   })
 
-  setInterval(fetchNewArticles, 60000)
+  setInterval(function fetchNewArticles() {
+    const options = {
+      from: lastUpdateAt.toISOString().slice(0,-5),
+      pageSize: 100
+    };
+    logger.info('Making request to NewsApi for fresh news')
+    makeNewsApiRequest(options)
+      .then(parseJSON)
+      .then(processParsedResponse)    
+      .then(insertArticlesIntoDb)
+      .then(updateLastUdpateAtDate)
+      .catch(processError);
+  }, 60000)
 
   if(process.env.NODE_ENV === 'development') {  
     const compiler = webpack(config);
@@ -235,8 +260,37 @@ function startServer() {
       // adding 1 sec offset to prevent duplicate articles
       lastUpdateAt = new Date(articles[0].publishedAt.getTime() + 1000);
       // fetching new articles that may be published after the newest in db
+      const options = {
+        from: lastUpdateAt.toISOString().slice(0,-5),
+        pageSize: 100
+      };
+      logger.info('Making request to NewsApi for fresh news')
       
-      return fetchNewArticles()
+      return makeNewsApiRequest(options)
+        .then(parseJSON)
+        .then(processParsedResponse)
+        .then(function fetchTheRestOfNewArticles(parsedResponse) {
+          if(parsedResponse.totalResults > 100) {
+            let promise = Promise.resolve()
+            for(let i = 2; i <= parsedResponse.totalResults/100 + 1; i++) { 
+              promise = promise.then(() => {
+                return fetchFreshArticlesPage({
+                  ...options,
+                  page: i,
+                })
+              })
+            }
+          }
+          return parsedResponse;
+        })
+        .then((parsedResponse) => {
+          if(parsedResponse.totalResults > 100) {
+            logger.info('Putting part 1 of fresh news in db')
+          }
+          return parsedResponse;
+        })
+        .then(insertArticlesIntoDb)
+        .then(updateLastUdpateAtDate)
         .then(function findOldestArticleInDb() {
           logger.info('Searching the oldest article in db');
           return Article.find().sort('publishedAt').limit(1).exec()
@@ -245,12 +299,14 @@ function startServer() {
           logger.info('Assigning oldestArticleDate');
           oldestArticleDate = articles[0].publishedAt;
         });
+        return Promise.resolve();
     } else {      
       // if we droped collection, make a new request to NewsApi for articles
       logger.info('Db is empty, making request to news api for articles')
       return makeNewsApiRequest({ pageSize: 100 })
       .then(parseJSON)
       .then(updateOldestArticleDate)
+      .then(processParsedResponse)
       .then(insertArticlesIntoDb)
       .then(updateLastUdpateAtDate);
     }    
