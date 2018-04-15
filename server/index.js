@@ -104,14 +104,26 @@ function processError(err) {
   }
 }
 
+function fetchNewArticles() {
+  const options = {
+    from: lastUpdateAt.toISOString().slice(0,-5),
+    pageSize: 100
+  };
+  logger.info('Making request to NewsApi for fresh news')
+  return makeNewsApiRequest(options)
+  .then(parseJSON)    
+  .then(insertArticlesIntoDb)
+  .then(updateLastUdpateAtDate)
+  .catch(processError);
+}
 
 function startServer() {
 
   app.get('/api/get-articles/:pagenumber', function(req, res, next) {
     const pagenumber = req.params.pagenumber;
+    console.log(Object.keys(req.query).length)
     logger.info(`Recived request for page ${pagenumber} of news`);
     Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec().then((articles) => {
-          // console.log(articles);
       if(articles.length === 0) {
         /* if user requests more articles than we stored in db,
           continue Promises chain to feth older articles */
@@ -174,18 +186,7 @@ function startServer() {
     })
   })
 
-  setInterval(function cacheNewArticles() {
-    const options = {
-      from: lastUpdateAt.toISOString().slice(0,-5),
-      pageSize: 100
-    };
-    logger.info('Making request to NewsApi for fresh news')
-    makeNewsApiRequest(options)
-    .then(parseJSON)    
-    .then(insertArticlesIntoDb)
-    .then(updateLastUdpateAtDate)
-    .catch(processError);
-  }, 60000)
+  setInterval(fetchNewArticles, 60000)
 
   if(process.env.NODE_ENV === 'development') {  
     const compiler = webpack(config);
@@ -196,16 +197,17 @@ function startServer() {
 
   app.listen(PORT, function(error) {
     if (error) {
-      console.error(error)
+      logger.error(error)
     } else {
-      console.info("==> 🌎  Listening on port %s. Open up http://localhost:%s/ in your browser.", PORT, PORT)
+      let logMessage = `==> 🌎  Server is running on port ${PORT}. `;
+      let devMessage = process.env.NODE_ENV === 'development' ? 
+        `Open up http://localhost:${PORT}/ in your browser.`
+        : '';
+      logger.info(logMessage + devMessage);
     }
   })
 
 }
-
-
-
 
 
 (function firstServerLaunch() {
@@ -214,7 +216,6 @@ function startServer() {
   logger.info('Counting number articles in db')
   // before giving a response to user we should convince that we have articles stored in our db
   Article.count().then(function countArticlesInDb(count)  {
-    //console.log(count)
     if (count >= 20) {
       logger.info('We have enough articles in db, searching the newest article in db');
       //searching the newest article in db
@@ -227,28 +228,33 @@ function startServer() {
       return Article.deleteMany().exec();        
     }
   })
-  .then(function assignLastUpdateAt(article) {
+  .then(function assignLastUpdateAt(articles) {
     // checking that we actually found an article from db
-    if (article && article[0] && article[0].publishedAt) {
+    if (articles && articles[0] && articles[0].publishedAt) {
       logger.info('Assigning LastUpdateDate');
       // adding 1 sec offset to prevent duplicate articles
-      lastUpdateAt = new Date(article[0].publishedAt.getTime() + 1000);
-      //console.log(lastUpdateAt);
-      // after assigning last update time, stop execution of promises chain
-      return Promise.reject();
-    }
-    return Promise.resolve();    
+      lastUpdateAt = new Date(articles[0].publishedAt.getTime() + 1000);
+      // fetching new articles that may be published after the newest in db
+      
+      return fetchNewArticles()
+        .then(function findOldestArticleInDb() {
+          logger.info('Searching the oldest article in db');
+          return Article.find().sort('publishedAt').limit(1).exec()
+        })
+        .then((articles) => {
+          logger.info('Assigning oldestArticleDate');
+          oldestArticleDate = articles[0].publishedAt;
+        });
+    } else {      
+      // if we droped collection, make a new request to NewsApi for articles
+      logger.info('Db is empty, making request to news api for articles')
+      return makeNewsApiRequest({ pageSize: 100 })
+      .then(parseJSON)
+      .then(updateOldestArticleDate)
+      .then(insertArticlesIntoDb)
+      .then(updateLastUdpateAtDate);
+    }    
   })
-  .then(function makeFirstRequestToNewsApi() {
-    // after droping collection make a new request to NewsApi for articles
-    logger.info('Db is empty, making request to news api for articles')
-    return makeNewsApiRequest({ pageSize: 100 });
-  })
-  .then(parseJSON)
-  .then(updateOldestArticleDate)
-  .then(insertArticlesIntoDb)
-  .then(updateLastUdpateAtDate) 
-  .catch(processError)
   .then(startServer)
+  .catch(processError)
 })()
-
