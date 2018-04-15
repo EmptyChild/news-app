@@ -16,13 +16,13 @@ class App extends Component {
       page: 1,
       fetchingArticles: true,
       filter: '',
-      searchErrorMessage: false
+      noMoreArticles: false
     }
   }
 
   fetchArticlesUntillEnoughToRender = (filterValue, page, articles, filteredArticles) => {
     console.log(page)
-    if(filteredArticles.length < 10 && page <= 499) {
+    if(filteredArticles.length < 10 && page <= 499 && filterValue === this.state.filter) {
       
       const nextPage = page + 1;
       this.fetchArticles(nextPage, (parsedRes) => {
@@ -37,7 +37,7 @@ class App extends Component {
         articles: articles,
         filteredArticles: filteredArticles,
         fetchingArticles: false,
-        searchErrorMessage: page > 499 ? true : false,
+        noMoreArticles: page > 499 ? true : false,
         page
       })
     }
@@ -107,7 +107,7 @@ class App extends Component {
       } else {
         this.setState({
           fetchingArticles: false,
-          searchErrorMessage: true,
+          noMoreArticles: true,
         })
       }
       
@@ -125,7 +125,8 @@ class App extends Component {
           filter=''
           articles={this.state.filteredArticles}
           fetchingArticles={this.state.fetchingArticles}
-          searchErrorMessage={this.state.searchErrorMessage}/>
+          noMoreArticles={this.state.noMoreArticles}
+          filter={this.state.filter}/>
           <Footer />
         </div>        
       </MuiThemeProvider>

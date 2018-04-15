@@ -41,7 +41,6 @@ export default class Main extends Component {
             hintText='Input keywords to filter articles'
             onChange={this.handleFilterInputChange} />
           <RaisedButton
-            disabled={this.props.searchDisabled}
             label='SEARCH'
             onClick={this.handleSearchClick}/>
         </ToolbarGroup>
