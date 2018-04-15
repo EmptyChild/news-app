@@ -1,5 +1,6 @@
 const querrystring = require('querystring');
 const https = require('https');
+const logger = require('./logger');
 
 const defaultOptions = {
   apiKey: '90a1c979bcb14acc868d6c829fe5bda7',
@@ -18,6 +19,7 @@ module.exports = function makeNewsApiRequest(options) {
       let fullResponse = '';
       newsApiResponse.on('data', (chunk) => { fullResponse += chunk; });
       newsApiResponse.on('end', () => {
+        logger.info(`Recived response from News Api ${newsApiResponse.statusCode}: ${newsApiResponse.statusMessage}`);
         if (newsApiResponse.statusCode !== 200) {
           const error = new Error('Wrong response from News Api!');
           error.statusCode = 502;
