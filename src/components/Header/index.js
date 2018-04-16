@@ -23,7 +23,8 @@ export default class Header extends Component {
         </AppBar>
         <HeaderPanel 
           submitFilterChange={this.props.submitFilterChange}
-          searchDisabled={this.props.searchDisabled}/>
+          searchDisabled={this.props.searchDisabled}
+          visitorsPerDay={this.props.visitorsPerDay}/>
       </header>
     );
   }

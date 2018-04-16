@@ -22,29 +22,32 @@ export default class HeaderPanel extends Component {
   }
 
   render() {
+    const visitorsPerDayText = `Visitors per day: ${this.props.visitorsPerDay}`;
     return (
-      <Toolbar
-        style={{
-          backgroundColor: 'white'
-        }}>
-        <ToolbarGroup
+      <div className='wrapper'>
+        <Toolbar
           style={{
-            width: '100%',
-            maxWidth: '1200px', 
-            margin: '0 auto',
-            display: 'flex',
-            justifyContent: 'start'
+            backgroundColor: 'white',
           }}>
-          <ToolbarTitle text='Filter' />
-          <TextField
-            type='search' 
-            hintText='Input keywords to filter articles'
-            onChange={this.handleFilterInputChange} />
-          <RaisedButton
-            label='SEARCH'
-            onClick={this.handleSearchClick}/>
-        </ToolbarGroup>
-      </Toolbar>
+          <ToolbarGroup
+            style={{
+              display: 'flex',
+              justifyContent: 'start'
+            }}>
+            <ToolbarTitle text='Filter' />
+            <TextField
+              type='search' 
+              hintText='Input keywords to filter articles'
+              onChange={this.handleFilterInputChange} />
+            <RaisedButton
+              label='SEARCH'
+              onClick={this.handleSearchClick}/>
+          </ToolbarGroup>
+          <ToolbarGroup>
+            <ToolbarTitle text={visitorsPerDayText}/>
+          </ToolbarGroup>
+        </Toolbar>
+      </div>
     );
   }
 

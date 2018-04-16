@@ -19,10 +19,10 @@ var app = express();
 
 let lastUpdateAt;
 let oldestArticleDate;
-
-app.get('/', function(req, res) {
-  res.sendFile(path.join(__dirname, '../','/dist/index.html'))
-});
+let numberOfVisitors = 0;
+let serverStartTime = new Date();
+let daysRunning = 1;
+let visitorsPerDay = 0;
 
 function parseJSON(jsonResponse) {
   try {
@@ -116,12 +116,21 @@ function fetchFreshArticlesPage(options) {
 
 function startServer() {
 
+  app.get('/', function(req, res) {
+    numberOfVisitors++;
+    if(new Date().getDate() > serverStartTime.getDate()) {
+      daysRunning++;
+    }
+    visitorsPerDay = Math.floor(numberOfVisitors/daysRunning);
+    res.sendFile(path.join(__dirname, '../','/dist/index.html'))
+  });
+
   app.get('/api/get-articles', function(req, res, next) {
     const pagenumber = req.query.page;
+    const filter = req.query.filter;
     logger.info(`Recived request for page ${pagenumber} of news`);
     let promise = Promise.resolve();
     promise.then(function searchArticlesInDb() {
-      const filter = req.query.filter;
       console.log(filter);
       if(!filter) {
         return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
@@ -136,15 +145,16 @@ function startServer() {
     })
     .then(function processArticlesFoundInDb(articles) {
       const length = articles.length;
-      console.log(length === 0 || (articles[length-1].publishedAt < oldestArticleDate))
-      if( length === 0 || (articles[length-1].publishedAt < oldestArticleDate)) {
-        /* if user requests more articles than we have in db,
+      console.log(length < 20 || (articles[length-1].publishedAt < oldestArticleDate))
+      if( length < 20 || (articles[length-1].publishedAt < oldestArticleDate)) {
+        /* if user requests more articles than we have in db
+          or articles amount is less 20,
           continue Promises chain to fetch older articles */
         return Promise.resolve();
       }
       increaseViews(articles);
       logger.info(`Sending page ${pagenumber} of news to user`);
-      res.json(articles);
+      res.json({articles, visitorsPerDay});
       
       // if we successfully returned response for user, stopin execution of promises chain
       return Promise.reject();
@@ -154,7 +164,7 @@ function startServer() {
       const options = {
         to: new Date(oldestArticleDate.getTime() - 1000).toISOString().slice(0,-5),
         pageSize: 100,
-        q: req.query.filter
+        q: filter ? filter : ''
       }
       console.log(options)
       logger.info(`No more news in db, requesting older news from NewsApi`);
@@ -162,15 +172,17 @@ function startServer() {
     })
     .then(parseJSON)
     .then((parsedResponse) => {
-      if(!req.query.filter) {
+      if(!filter) {
+        // if it wasn't filterd search, and we cached all articles, update oldestArticleDate
         return updateOldestArticleDate(parsedResponse)
       }
+      //if it was, just passing response. Unless we don't update oldestArticleDate, 
+      //we putting filtered articles in db, and can cache unfiltered ones later
       return parsedResponse;
     })
     .then(processParsedResponse)
     .then(insertArticlesIntoDb)
     .then(() => {
-      const filter = req.query.filter;
       if(!filter) {
         return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
       } else {
@@ -185,7 +197,7 @@ function startServer() {
     .then(increaseViews)
     .then((articles) => {
       logger.info(`Sending page ${pagenumber} of news to user`);
-      res.json(articles);     
+      res.json({articles, visitorsPerDay});     
     })
     .catch(function processErrorAndRespond(err) {
       // if we stopping promises chain execution with error, response to user with error
@@ -216,7 +228,7 @@ function startServer() {
     })
   })
 
-  setInterval(function fetchNewArticles() {
+  setInterval(function checkUpdatesAndRecalcVisitors() {
     const options = {
       from: lastUpdateAt.toISOString().slice(0,-5),
       pageSize: 100
@@ -281,8 +293,7 @@ function startServer() {
         from: lastUpdateAt.toISOString().slice(0,-5),
         pageSize: 100
       };
-      logger.info('Making request to NewsApi for fresh news')
-      
+      logger.info('Making request to NewsApi for fresh news')      
       return makeNewsApiRequest(options)
         .then(parseJSON)
         .then(processParsedResponse)

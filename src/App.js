@@ -19,7 +19,8 @@ class App extends Component {
       filteredPage: 1,
       fetchingArticles: true,
       filter: '',
-      noMoreArticles: false
+      noMoreArticles: false,
+      visitorsPerDay: 0
     }
   }
 
@@ -33,7 +34,7 @@ class App extends Component {
       });
       this.fetchArticles({page: 1, filter: filterValue}, (parsedRes) => {
         this.setState({
-          filteredArticles: parsedRes,
+          filteredArticles: parsedRes.articles,
           fetchingArticles: false,
         })
       });
@@ -49,9 +50,10 @@ class App extends Component {
   componentDidMount() {
     this.fetchArticles({ page: 1}, (parsedRes) => {
       this.setState({
-        articles: parsedRes,
+        articles: parsedRes.articles,
         filteredArticles: parsedRes,
-        fetchingArticles: false
+        fetchingArticles: false,
+        visitorsPerDay: parsedRes.visitorsPerDay
       })
       window.onscroll = this.updateArticlesOnScroll;
     })
@@ -98,18 +100,19 @@ class App extends Component {
         fetchingArticles: true
       });
       if (this.state.page < 499) {
-        console.log(this.state.page + 1)
-        this.fetchArticles({ page: this.state.page + 1, filter: this.state.filter }, (parsedRes) => {
+        console.log(this.state.page + 1);
+        const page = this.state.filter ? this.state.filteredPage : this.state.page;
+        this.fetchArticles({ page: page + 1, filter: this.state.filter }, (parsedRes) => {
           this.setState((prevState) => {
             if(prevState.filter) {
               return {
-                filteredArticles: prevState.filteredArticles.concat(parsedRes),
+                filteredArticles: prevState.filteredArticles.concat(parsedRes.articles),
                 page: prevState.filteredPage + 1,
                 fetchingArticles: false
               };
             } else {
               return {
-                articles: prevState.articles.concat(parsedRes),
+                articles: prevState.articles.concat(parsedRes.articles),
                 page: prevState.page + 1,
                 fetchingArticles: false
               };
@@ -133,7 +136,8 @@ class App extends Component {
         <div>
           <Header 
             submitFilterChange={this.submitFilterChange}
-            searchDisabled={this.state.fetchingArticles}/>
+            searchDisabled={this.state.fetchingArticles}
+            visitorsPerDay={this.state.visitorsPerDay}/>
           <Main 
           articles={articlesToRender}
           fetchingArticles={this.state.fetchingArticles}
