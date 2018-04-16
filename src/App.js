@@ -25,7 +25,7 @@ class App extends Component {
     if(filteredArticles.length < 10 && page <= 499 && filterValue === this.state.filter) {
       
       const nextPage = page + 1;
-      this.fetchArticles(nextPage, (parsedRes) => {
+      this.fetchArticles({page: nextPage}, (parsedRes) => {
         const newArticles = articles.concat(parsedRes);
         const newFilteredArticles = newArticles.filter((article) => {
           return article.title.toLowerCase().includes(filterValue) || article.description.toLowerCase().includes(filterValue);
@@ -57,7 +57,7 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.fetchArticles(1, (parsedRes) => {
+    this.fetchArticles({ page: 1}, (parsedRes) => {
       this.setState({
         articles: parsedRes,
         filteredArticles: parsedRes,
@@ -67,8 +67,12 @@ class App extends Component {
     })
   }
 
-  fetchArticles = (page, callback) => {
-    return fetch(`api/get-articles/${page}`)
+  fetchArticles = (options, callback) => {
+    const { filter, page } = options;
+    const query = filter ?
+      `filter=${filter}&page=${page}`
+      : `page=${page}`
+    return fetch(`api/get-articles?${query}`)
     .then((res) => {
       return res.json()
     })
@@ -84,13 +88,14 @@ class App extends Component {
       document.body.clientHeight, document.documentElement.clientHeight
     );
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    if(scrollTop/pageHeight >= 0.7 && !this.state.fetchingArticles) {
+    const clientHeight = document.documentElement.clientHeight;
+    if( ((pageHeight - scrollTop) < (0,3 * clientHeight)) && !this.state.fetchingArticles) {
       console.log(this.state.page + 1)
       this.setState({
         fetchingArticles: true
       });
       if (this.state.page < 499) {
-        this.fetchArticles(this.state.page + 1, (parsedRes) => {
+        this.fetchArticles({ page: this.state.page + 1, filter: this.state.filter }, (parsedRes) => {
           this.setState((prevState) => {
             const newArticles = prevState.articles.concat(parsedRes);
             const newFilteredArticles = prevState.filteredArticles.concat(parsedRes.filter((article) => {
@@ -122,8 +127,7 @@ class App extends Component {
             submitFilterChange={this.submitFilterChange}
             searchDisabled={this.state.fetchingArticles}/>
           <Main 
-          filter=''
-          articles={this.state.filteredArticles}
+          articles={this.state.filter ? this.state.filteredArticles : this.state.articles}
           fetchingArticles={this.state.fetchingArticles}
           noMoreArticles={this.state.noMoreArticles}
           filter={this.state.filter}/>

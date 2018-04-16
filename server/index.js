@@ -120,25 +120,28 @@ function fetchFreshArticlesPage(options) {
   return makeNewsApiRequest(options)
   .then(parseJSON)
   .then(processParsedResponse)    
-  .then(insertArticlesIntoDb)
-  .catch(function processFreshArticlesPageError(err) {
-    if(err) {
-      logger.error(`Error while fetchin part ${i} of fresh news`)
-      logger.error(err)
-    }
-  });
+  .then(insertArticlesIntoDb);
 };
 
 
 function startServer() {
 
-  app.get('/api/get-articles/:pagenumber', function(req, res, next) {
-    const pagenumber = req.params.pagenumber;
-    console.log(Object.keys(req.query).length)
+  app.get('/api/get-articles', function(req, res, next) {
+    const pagenumber = req.query.page;
     logger.info(`Recived request for page ${pagenumber} of news`);
-    Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec().then((articles) => {
-      if(articles.length === 0) {
-        /* if user requests more articles than we stored in db,
+    let promise = Promise.resolve();
+    promise.then(function searchArticlesInDb() {
+      const filter = req.query.filter;
+      if(filter === '') {
+        return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+      } else {
+        return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+      }       
+    })
+    .then(function processArticlesFoundInDb(articles) {
+      const length = articles.length;
+      if( length === 0 || articles[length-1].publishedAt < oldestArticleDate) {
+        /* if user requests more articles than we have in db,
           continue Promises chain to fetch older articles */
         return Promise.resolve();
       }
@@ -274,9 +277,16 @@ function startServer() {
             let promise = Promise.resolve()
             for(let i = 2; i <= parsedResponse.totalResults/100 + 1; i++) { 
               promise = promise.then(() => {
+                logger.info(`Fetching page ${i} of fresh articles`);
                 return fetchFreshArticlesPage({
                   ...options,
                   page: i,
+                })
+                .catch(function processFreshArticlesPageError(err) {
+                  if(err) {
+                    logger.error(`Error while fetching part ${i} of fresh news`)
+                    logger.error(err)
+                  }
                 })
               })
             }
