@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import Header from './components/Header';
 import Main from './components/Main';
+import 'babel-polyfill';
+import 'whatwg-fetch';
 import Footer from './components/Footer';
 // import MyTheme from './Theme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
@@ -21,25 +23,6 @@ class App extends Component {
     }
   }
 
-  fetchArticlesUntillEnoughToRender = (filterValue, page, filteredArticles) => {
-    console.log(page)
-    if(filteredArticles.length < 10 && (filterValue === this.state.filter || page < 5) && page < 5) {
-      
-      const nextPage = page + 1;
-      this.fetchArticles({page: nextPage, filter: filterValue}, (parsedRes) => {
-        const newFilteredArticles = filteredArticles.concat(parsedRes);
-        this.fetchArticlesUntillEnoughToRender(filterValue, nextPage, newFilteredArticles);
-      })
-    } else {
-      this.setState({
-        filteredArticles,
-        fetchingArticles: false,
-        noMoreArticles: page > 499 ? true : false,
-        filteredPage: page
-      })
-    }
-  }
-
   submitFilterChange = (filterValue) => {
     if(filterValue) {
       this.setState({
@@ -48,7 +31,12 @@ class App extends Component {
         fetchingArticles: true,
         filteredPage: 1
       });
-      this.fetchArticlesUntillEnoughToRender(filterValue, 1, []);
+      this.fetchArticles({page: 1, filter: filterValue}, (parsedRes) => {
+        this.setState({
+          filteredArticles: parsedRes,
+          fetchingArticles: false,
+        })
+      });
     } else {
       this.setState({
         filter: '',
@@ -76,10 +64,24 @@ class App extends Component {
       : `page=${page}`
     return fetch(`api/get-articles?${query}`)
     .then((res) => {
-      return res.json()
+      if(res.ok && res.headers.get('Content-Type') === 'application/json; charset=utf-8') {
+        return res.json()
+      }
+      let err = new Error('Invalid Response!');
+      err.resonse = res;
+      throw err;
     })
     .then((parsedRes) => {      
       callback(parsedRes);
+    })
+    .catch((err) => {
+      if(err) {
+        console.error(err);
+        this.setState({
+          fetchArticles: false,
+          noMoreArticles: true
+        })
+      }
     });
   }
   
@@ -101,8 +103,8 @@ class App extends Component {
           this.setState((prevState) => {
             if(prevState.filter) {
               return {
-                filteredArticles: parsedRes,
-                page: prevState.page + 1,
+                filteredArticles: prevState.filteredArticles.concat(parsedRes),
+                page: prevState.filteredPage + 1,
                 fetchingArticles: false
               };
             } else {
