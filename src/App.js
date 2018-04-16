@@ -14,6 +14,7 @@ class App extends Component {
       articles: [],
       filteredArticles: [],
       page: 1,
+      filteredPage: 1,
       fetchingArticles: true,
       filter: '',
       noMoreArticles: false
@@ -22,7 +23,7 @@ class App extends Component {
 
   fetchArticlesUntillEnoughToRender = (filterValue, page, filteredArticles) => {
     console.log(page)
-    if(filteredArticles.length < 10 && (filterValue === this.state.filter || page < 5) ) {
+    if(filteredArticles.length < 10 && (filterValue === this.state.filter || page < 5) && page < 5) {
       
       const nextPage = page + 1;
       this.fetchArticles({page: nextPage, filter: filterValue}, (parsedRes) => {
@@ -34,7 +35,7 @@ class App extends Component {
         filteredArticles,
         fetchingArticles: false,
         noMoreArticles: page > 499 ? true : false,
-        page
+        filteredPage: page
       })
     }
   }
@@ -44,7 +45,8 @@ class App extends Component {
       this.setState({
         filter: filterValue,
         filteredArticles: [],
-        fetchingArticles: true
+        fetchingArticles: true,
+        filteredPage: 1
       });
       this.fetchArticlesUntillEnoughToRender(filterValue, 1, []);
     } else {
@@ -88,13 +90,13 @@ class App extends Component {
       document.body.clientHeight, document.documentElement.clientHeight
     );
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const clientHeight = document.documentElement.clientHeight;
-    if( ((pageHeight - scrollTop) < (0,3 * clientHeight)) && !this.state.fetchingArticles) {
-      console.log(this.state.page + 1)
+    //const clientHeight = document.documentElement.clientHeight;
+    if( (scrollTop/pageHeight > 0.7) && !this.state.fetchingArticles) {
       this.setState({
         fetchingArticles: true
       });
       if (this.state.page < 499) {
+        console.log(this.state.page + 1)
         this.fetchArticles({ page: this.state.page + 1, filter: this.state.filter }, (parsedRes) => {
           this.setState((prevState) => {
             if(prevState.filter) {
@@ -105,7 +107,7 @@ class App extends Component {
               };
             } else {
               return {
-                articles: parsedRes,
+                articles: prevState.articles.concat(parsedRes),
                 page: prevState.page + 1,
                 fetchingArticles: false
               };
