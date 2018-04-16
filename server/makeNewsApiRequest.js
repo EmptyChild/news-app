@@ -1,4 +1,4 @@
-const querrystring = require('querystring');
+const querystring = require('querystring');
 const https = require('https');
 const logger = require('./logger');
 
@@ -14,7 +14,7 @@ module.exports = function makeNewsApiRequest(options) {
     ...options
   }
   return new Promise((resolve, reject) => {
-    const request = https.get('https://newsapi.org/v2/everything?' + querrystring.stringify(requestOptions), (newsApiResponse) => {
+    const request = https.get('https://newsapi.org/v2/everything?' + querystring.stringify(requestOptions), (newsApiResponse) => {
       newsApiResponse.setEncoding('utf8');
       let fullResponse = '';
       newsApiResponse.on('data', (chunk) => { fullResponse += chunk; });

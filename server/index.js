@@ -1,7 +1,4 @@
-
 const express = require('express');
-// const bodyParser = require('body-parser');
-// const session = require('express-session');
 
 const webpack = require('webpack');
 const webpackDevMiddleware = require('webpack-dev-middleware');
@@ -18,15 +15,7 @@ const makeNewsApiRequest = require('./makeNewsApiRequest');
 var app = express();
 
 // app.use(favicon(path.join(__dirname, '../', '/dist/favicon.ico')));
-// app.use(bodyParser.urlencoded({ extended: false }))
-// app.use(bodyParser.json())
-// app.use(session({ 
-//   secret: 'SECRET',
-//   resave: false,
-//   saveUninitialized: true,
-//  })); 
-// app.use(passport.initialize());
-// app.use(passport.session());
+
 
 let lastUpdateAt;
 let oldestArticleDate;
@@ -78,7 +67,7 @@ function insertArticlesIntoDb(parsedResponse) {
       publishedAt: new Date(article.publishedAt)
     };
   });
-  logger.info('Putting articles in db');
+  logger.info(`Putting ${articles.length} articles in db`);
   // after getting news from news api we store them in our db with "liked" and "numberOfVews" fields     
   return Article.insertMany(articles, { ordered: false });
   } else {
@@ -104,6 +93,7 @@ function updateLastUdpateAtDate() {
 }
 
 function updateOldestArticleDate(parsedResponse) {
+  logger.info('updating oldestArticleInDb');
   const length = parsedResponse.articles.length;
   oldestArticleDate = new Date(parsedResponse.articles[length - 1].publishedAt);
   return parsedResponse;
@@ -132,15 +122,22 @@ function startServer() {
     let promise = Promise.resolve();
     promise.then(function searchArticlesInDb() {
       const filter = req.query.filter;
-      if(filter === '') {
+      console.log(filter);
+      if(!filter) {
         return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
       } else {
-        return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+        return Article.find()
+          .or([
+            {title: {$regex: new RegExp(`${filter}`, 'i')}}, 
+            {description: {$regex: new RegExp(`${filter}`, 'i')}}
+          ])
+          .sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
       }       
     })
     .then(function processArticlesFoundInDb(articles) {
       const length = articles.length;
-      if( length === 0 || articles[length-1].publishedAt < oldestArticleDate) {
+      console.log(length === 0 || (articles[length-1].publishedAt < oldestArticleDate))
+      if( length === 0 || (articles[length-1].publishedAt < oldestArticleDate)) {
         /* if user requests more articles than we have in db,
           continue Promises chain to fetch older articles */
         return Promise.resolve();
@@ -156,17 +153,34 @@ function startServer() {
       // formating Date of the oldest article in db to ISO format, adding 1 sec offset to prevent diplicate articles
       const options = {
         to: new Date(oldestArticleDate.getTime() - 1000).toISOString().slice(0,-5),
-        pageSize: 100
+        pageSize: 100,
+        q: req.query.filter
       }
+      console.log(options)
       logger.info(`No more news in db, requesting older news from NewsApi`);
       return makeNewsApiRequest(options);
     })
     .then(parseJSON)
-    .then(updateOldestArticleDate)
+    .then((parsedResponse) => {
+      if(!req.query.filter) {
+        return updateOldestArticleDate(parsedResponse)
+      }
+      return parsedResponse;
+    })
     .then(processParsedResponse)
     .then(insertArticlesIntoDb)
     .then(() => {
-      return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+      const filter = req.query.filter;
+      if(!filter) {
+        return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+      } else {
+        return Article.find()
+        .or([
+          {title: {$regex: new RegExp(`${filter}`, 'i')}}, 
+          {description: {$regex: new RegExp(`${filter}`, 'i')}}
+        ])
+        .sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+      }
     })
     .then(increaseViews)
     .then((articles) => {

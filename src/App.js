@@ -20,22 +20,18 @@ class App extends Component {
     }
   }
 
-  fetchArticlesUntillEnoughToRender = (filterValue, page, articles, filteredArticles) => {
+  fetchArticlesUntillEnoughToRender = (filterValue, page, filteredArticles) => {
     console.log(page)
-    if(filteredArticles.length < 10 && page <= 499 && filterValue === this.state.filter) {
+    if(filteredArticles.length < 10 && (filterValue === this.state.filter || page < 5) ) {
       
       const nextPage = page + 1;
-      this.fetchArticles({page: nextPage}, (parsedRes) => {
-        const newArticles = articles.concat(parsedRes);
-        const newFilteredArticles = newArticles.filter((article) => {
-          return article.title.toLowerCase().includes(filterValue) || article.description.toLowerCase().includes(filterValue);
-        });
-        this.fetchArticlesUntillEnoughToRender(filterValue, nextPage, newArticles, newFilteredArticles);
+      this.fetchArticles({page: nextPage, filter: filterValue}, (parsedRes) => {
+        const newFilteredArticles = filteredArticles.concat(parsedRes);
+        this.fetchArticlesUntillEnoughToRender(filterValue, nextPage, newFilteredArticles);
       })
     } else {
       this.setState({
-        articles: articles,
-        filteredArticles: filteredArticles,
+        filteredArticles,
         fetchingArticles: false,
         noMoreArticles: page > 499 ? true : false,
         page
@@ -44,16 +40,20 @@ class App extends Component {
   }
 
   submitFilterChange = (filterValue) => {
-    this.setState({
-      filter: filterValue.toLowerCase(),
-      filteredArticles: [],
-      fetchingArticles: true
-    });
-  
-    let filteredArticles = this.state.articles.filter((article) => {
-      return article.title.toLowerCase().includes(filterValue) || article.description.toLowerCase().includes(filterValue);
-    });
-    this.fetchArticlesUntillEnoughToRender(filterValue.toLowerCase(), this.state.page, this.state.articles, filteredArticles);
+    if(filterValue) {
+      this.setState({
+        filter: filterValue,
+        filteredArticles: [],
+        fetchingArticles: true
+      });
+      this.fetchArticlesUntillEnoughToRender(filterValue, 1, []);
+    } else {
+      this.setState({
+        filter: '',
+        filteredArticles: [],
+        fetchingArticles: false
+      });
+    }
   }
 
   componentDidMount() {
@@ -70,7 +70,7 @@ class App extends Component {
   fetchArticles = (options, callback) => {
     const { filter, page } = options;
     const query = filter ?
-      `filter=${filter}&page=${page}`
+      `filter=${encodeURI(filter)}&page=${page}`
       : `page=${page}`
     return fetch(`api/get-articles?${query}`)
     .then((res) => {
@@ -97,16 +97,19 @@ class App extends Component {
       if (this.state.page < 499) {
         this.fetchArticles({ page: this.state.page + 1, filter: this.state.filter }, (parsedRes) => {
           this.setState((prevState) => {
-            const newArticles = prevState.articles.concat(parsedRes);
-            const newFilteredArticles = prevState.filteredArticles.concat(parsedRes.filter((article) => {
-              return article.title.includes(prevState.filter) || article.description.includes(prevState.filter);
-            }));
-            return {
-              articles: newArticles,
-              filteredArticles: newFilteredArticles,
-              page: prevState.page + 1,
-              fetchingArticles: false
-            };
+            if(prevState.filter) {
+              return {
+                filteredArticles: parsedRes,
+                page: prevState.page + 1,
+                fetchingArticles: false
+              };
+            } else {
+              return {
+                articles: parsedRes,
+                page: prevState.page + 1,
+                fetchingArticles: false
+              };
+            }
           })
         })
       } else {
@@ -120,6 +123,7 @@ class App extends Component {
   }
 
   render() {
+    const articlesToRender = this.state.filter ? this.state.filteredArticles : this.state.articles;
     return (
       <MuiThemeProvider>
         <div>
@@ -127,7 +131,7 @@ class App extends Component {
             submitFilterChange={this.submitFilterChange}
             searchDisabled={this.state.fetchingArticles}/>
           <Main 
-          articles={this.state.filter ? this.state.filteredArticles : this.state.articles}
+          articles={articlesToRender}
           fetchingArticles={this.state.fetchingArticles}
           noMoreArticles={this.state.noMoreArticles}
           filter={this.state.filter}/>
