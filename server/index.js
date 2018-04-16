@@ -228,7 +228,7 @@ function startServer() {
       .then(insertArticlesIntoDb)
       .then(updateLastUdpateAtDate)
       .catch(processError);
-  }, 60000)
+  }, 5 * 60 * 1000)
 
   if(process.env.NODE_ENV === 'development') {  
     const compiler = webpack(config);
