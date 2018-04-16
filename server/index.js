@@ -7,6 +7,7 @@ const config = require('../webpack.dev.config');
 const PORT = process.env.PORT || 3000;
 
 const logger = require('./logger');
+const VError = require('verror').VError;
 const path = require('path');
 const Article = require('./ArticleModel');
 const makeNewsApiRequest = require('./makeNewsApiRequest');
@@ -20,7 +21,7 @@ var app = express();
 let lastUpdateAt;
 let oldestArticleDate;
 let numberOfVisitors = 0;
-let serverStartTime = new Date();
+let currentDay = new Date();
 let daysRunning = 1;
 let visitorsPerDay = 0;
 
@@ -105,6 +106,13 @@ function processError(err) {
   }
 }
 
+function processMongodbOperationError(err) {
+  if(err) {
+    const error = new VError(err, 'Error while MongoDb operation');
+    return Promise.reject(error);
+  }
+}
+
 function fetchFreshArticlesPage(options) {  
   logger.info('Making request to NewsApi')
   return makeNewsApiRequest(options)
@@ -118,14 +126,15 @@ function startServer() {
 
   app.get('/', function(req, res) {
     numberOfVisitors++;
-    if(new Date().getDate() > serverStartTime.getDate()) {
+    if(new Date().getDate() > currentDay.getDate()) {
+      currentDay = new Date();
       daysRunning++;
     }
     visitorsPerDay = Math.floor(numberOfVisitors/daysRunning);
     res.sendFile(path.join(__dirname, '../','/dist/index.html'))
   });
 
-  app.get('/api/get-articles', function(req, res, next) {
+  app.get('/api/get-articles', function processArticlesRequest(req, res, next) {
     const pagenumber = req.query.page;
     const filter = req.query.filter;
     logger.info(`Recived request for page ${pagenumber} of news`);
@@ -133,14 +142,16 @@ function startServer() {
     promise.then(function searchArticlesInDb() {
       console.log(filter);
       if(!filter) {
-        return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+        return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec()
+          .catch(processMongodbOperationError);
       } else {
         return Article.find()
           .or([
             {title: {$regex: new RegExp(`${filter}`, 'i')}}, 
             {description: {$regex: new RegExp(`${filter}`, 'i')}}
           ])
-          .sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+          .sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec()
+          .catch(processMongodbOperationError);
       }       
     })
     .then(function processArticlesFoundInDb(articles) {
@@ -211,7 +222,7 @@ function startServer() {
 
   })
 
-  app.post('/api/like/:articleId', function(req, res, next) {
+  app.post('/api/like/:articleId', function processLikeRequest(req, res, next) {
     Article.findById(req.params.articleId).exec().then((article) => {
       article.liked = true;
       return article.save();
@@ -293,6 +304,7 @@ function startServer() {
         from: lastUpdateAt.toISOString().slice(0,-5),
         pageSize: 100
       };
+      //return Promise.resolve()
       logger.info('Making request to NewsApi for fresh news')      
       return makeNewsApiRequest(options)
         .then(parseJSON)
