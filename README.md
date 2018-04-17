@@ -1,5 +1,6 @@
 ## News App
 Test task for SmartexLab
+
 working example on heroku: https://breakingnews-app.herokuapp.com/
 ## Plan
 1) 02.04.2018 - Configure project structure, preparing boilerplate
