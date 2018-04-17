@@ -10,15 +10,15 @@ working example on heroku: https://breakingnews-app.herokuapp.com/
 6) 16.04.2018 - 17.04.2018 - Resolving possible unexpected issues
 
 ### Actual Work log
-1)02.04.2018 - Configure project structure, preparing boilerplate
-2)03.04.2018 - 07.04.2018 - Header, Footer components, wrapper for articles list
-3)07.04.2018 - 09.04.2018 - Article Component
-4)10.04.2018 - 13.04.2018 - Server api and interaction with newsAPI, db for storing articles with likes and numberOfViews
-5)13.04.2018 - 14.04.2018 - Interaction with frontend and backend
-6)14.04.2018 - Filter component and server logic
-7)15.04.2018 - Server logic refactoring, additional messages on search and end of articles in Main component
-8)16.04.2018 - Number of visitors per day, Filter logic rework, additional errors handlers and logging, refactoring
-9)17.04.2018 - Refactoring and bug fixing, preparing for deployment
+1) 02.04.2018 - Configure project structure, preparing boilerplate
+2) 03.04.2018 - 07.04.2018 - Header, Footer components, wrapper for articles list
+3) 07.04.2018 - 09.04.2018 - Article Component
+4) 10.04.2018 - 13.04.2018 - Server api and interaction with newsAPI, db for storing articles with likes and numberOfViews
+5) 13.04.2018 - 14.04.2018 - Interaction with frontend and backend
+6) 14.04.2018 - Filter component and server logic
+7) 15.04.2018 - Server logic refactoring, additional messages on search and end of articles in Main component
+8) 16.04.2018 - Number of visitors per day, Filter logic rework, additional errors handlers and logging, refactoring
+9) 17.04.2018 - Refactoring and bug fixing, preparing for deployment
 
 #### Getting Started
 
