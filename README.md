@@ -20,20 +20,17 @@ working example on heroku: https://breakingnews-app.herokuapp.com/
 8) 16.04.2018 - Number of visitors per day, Filter logic rework, additional errors handlers and logging, refactoring
 9) 17.04.2018 - Refactoring and bug fixing, preparing for deployment
 
-## Getting Started
-
-git clone https://github.com/EmptyChild/news-app.git
-
 
 ## Prerequisites
 
-* Install [nodejs](https://nodejs.org/en/) (>= v6.9.4)
+* git clone https://github.com/EmptyChild/news-app.git
+* Install [nodejs](https://nodejs.org/en/) (>= v8.9.x)
 * open bash in this folder
 * `npm install`
 
 ## Run App
 * Install and run MongoDB instance (https://www.mongodb.com/)
-* Achive free NewsApi key (https://newsapi.org/)
+* Get free NewsApi key (https://newsapi.org/)
 * open bash in this folder
 * `npm run build`
 * Run `MONGO_URI=[your MongoDB instance URI] NEWS_API_KEY=[your NewsApi Key] npm run start` in your bash command shell
