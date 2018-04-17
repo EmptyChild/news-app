@@ -15,6 +15,7 @@ const render = Component => {
   )
 }
 
+// covering App component by <AppContainer> for react hot modules replacement
 let AppToRender = process.env.NODE_ENV === 'development' ?
 () => {
   return (
@@ -30,6 +31,7 @@ let AppToRender = process.env.NODE_ENV === 'development' ?
 };
 render(AppToRender);
 
+// rerender App if we have hot updates
 if (module.hot) {
   module.hot.accept('./App', () => {
     render(AppToRender)

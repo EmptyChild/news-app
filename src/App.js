@@ -4,9 +4,7 @@ import Main from './components/Main';
 import 'babel-polyfill';
 import 'whatwg-fetch';
 import Footer from './components/Footer';
-// import MyTheme from './Theme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-// import getMuiTheme from 'material-ui/styles/getMuiTheme';
 
 
 class App extends Component {
@@ -25,6 +23,7 @@ class App extends Component {
   }
 
   submitFilterChange = (filterValue) => {
+    // if we apply a new filter, set it to state, clear filtered articles and set filtered page to 1
     if(filterValue) {
       this.setState({
         filter: filterValue,
@@ -32,6 +31,8 @@ class App extends Component {
         fetchingArticles: true,
         filteredPage: 1
       });
+      // we save recived filtered articles and their page separate from non-filtered ones,
+      // so if we clear the filter, we can easily return to rendering non-filterd articles
       this.fetchArticles({page: 1, filter: filterValue}, (parsedRes) => {
         this.setState({
           filteredArticles: parsedRes.articles,
@@ -39,6 +40,7 @@ class App extends Component {
         })
       });
     } else {
+      //if we clearing filter, just clear filtered articles array
       this.setState({
         filter: '',
         filteredArticles: [],
@@ -51,7 +53,6 @@ class App extends Component {
     this.fetchArticles({ page: 1}, (parsedRes) => {
       this.setState({
         articles: parsedRes.articles,
-        filteredArticles: parsedRes,
         fetchingArticles: false,
         visitorsPerDay: parsedRes.visitorsPerDay
       })
@@ -79,6 +80,7 @@ class App extends Component {
     .catch((err) => {
       if(err) {
         console.error(err);
+        console.error(err.res);
         this.setState({
           fetchingArticles: false,
           noMoreArticles: true
@@ -94,49 +96,46 @@ class App extends Component {
       document.body.clientHeight, document.documentElement.clientHeight
     );
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    //const clientHeight = document.documentElement.clientHeight;
-    if( (scrollTop/pageHeight > 0.7) && !this.state.fetchingArticles) {
+    const clientHeight = document.documentElement.clientHeight;
+    //if we have less than one and a half screen to scroll and not fetching right now, request new page of articles
+    if( ((pageHeight - scrollTop) < (1.5 * clientHeight)) && !this.state.fetchingArticles) {
       this.setState({
         fetchingArticles: true
       });
-      if (this.state.page < 499) {
-        console.log(this.state.page + 1);
-        const page = this.state.filter ? this.state.filteredPage : this.state.page;
-        this.fetchArticles({ page: page + 1, filter: this.state.filter }, (parsedRes) => {
-          this.setState((prevState) => {
-            if(parsedRes.articles.length) {
-              if(prevState.filter) {
-                return {
-                  filteredArticles: prevState.filteredArticles.concat(parsedRes.articles),
-                  page: prevState.filteredPage + 1,
-                  fetchingArticles: false
-                };
-              } else {
-                return {
-                  articles: prevState.articles.concat(parsedRes.articles),
-                  page: prevState.page + 1,
-                  fetchingArticles: false
-                };
-              }
+      // if we have filter applied, request new page of filtered articles, 
+      // else regular page of articles
+      const page = this.state.filter ? this.state.filteredPage : this.state.page;
+      console.log(page + 1);
+      this.fetchArticles({ page: page + 1, filter: this.state.filter }, (parsedRes) => {
+        this.setState((prevState) => {
+          // if we have articles in response, set them to state according to filter and increase page or filtered page
+          if(parsedRes.articles.length) {
+            if(prevState.filter) {
+              return {
+                filteredArticles: prevState.filteredArticles.concat(parsedRes.articles),
+                page: prevState.filteredPage + 1,
+                fetchingArticles: false
+              };
             } else {
               return {
-                fetchingArticles: false,
-                noMoreArticles: true
-              }
+                articles: prevState.articles.concat(parsedRes.articles),
+                page: prevState.page + 1,
+                fetchingArticles: false
+              };
             }
-          })
+          } else {
+            return {
+              fetchingArticles: false,
+              noMoreArticles: true
+            }
+          }
         })
-      } else {
-        this.setState({
-          fetchingArticles: false,
-          noMoreArticles: true,
-        })
-      }
-      
+      });      
     }
   }
 
   render() {
+    // if we have filter applied, render filtered articles, else regular ones
     const articlesToRender = this.state.filter ? this.state.filteredArticles : this.state.articles;
     return (
       <MuiThemeProvider>

@@ -12,11 +12,10 @@ const path = require('path');
 const Article = require('./ArticleModel');
 const makeNewsApiRequest = require('./makeNewsApiRequest');
 
-// const favicon = require('serve-favicon');
+const favicon = require('serve-favicon');
 var app = express();
 
-// app.use(favicon(path.join(__dirname, '../', '/dist/favicon.ico')));
-
+app.use(favicon(path.join(__dirname, '../', '/dist/favicon-32x32.png')));
 
 let lastUpdateAt;
 let oldestArticleDate;
@@ -61,6 +60,7 @@ function processParsedResponse(parsedResponse) {
 
 function processMongodbOperationError(err) {
   if(err) {
+    //covering MongoError with custom one to capture stack trace
     const error = new VError(err, 'Error while MongoDb operation');
     error.stack = VError.fullStack(error);
     return Promise.reject(error);
@@ -89,6 +89,7 @@ function insertArticlesIntoDb(parsedResponse) {
 
 
 function updateLastUdpateAtDate() {
+  logger.info('Setting lastUpdateAt date')
   lastUpdateAt = new Date();
 }
 
@@ -106,6 +107,7 @@ function processError(err) {
 }
 
 function increaseViews(articles) {
+  // increasing number of views for each article before giving a response to user
   articles.forEach((article) => {
     article.numberOfViews += 1;
     article.save((err) => {
@@ -122,9 +124,9 @@ function increaseViews(articles) {
 function fetchFreshArticlesPage(options) {  
   logger.info('Making request to NewsApi')
   return makeNewsApiRequest(options)
-  .then(parseJSON)
-  .then(processParsedResponse)    
-  .then(insertArticlesIntoDb);
+    .then(parseJSON)
+    .then(processParsedResponse)    
+    .then(insertArticlesIntoDb);
 };
 
 
@@ -161,7 +163,6 @@ function startServer() {
     })
     .then(function processArticlesFoundInDb(articles) {
       const length = articles.length;
-      console.log(length < 20 || (articles[length-1].publishedAt < oldestArticleDate))
       if( length < 20 || (articles[length-1].publishedAt < oldestArticleDate)) {
         /* if user requests more articles than we have in db
           or articles amount is less 20,
@@ -182,8 +183,11 @@ function startServer() {
         pageSize: 100,
         q: filter ? filter : ''
       }
-      console.log(options)
-      logger.info(`No more news in db, requesting older news from NewsApi`);
+      if(filter) {
+        logger.info(`No more news in db matching with "${filter}", requesting older news from NewsApi`);
+      } else {
+        logger.info(`No more news in db, requesting older news from NewsApi`);
+      }
       return makeNewsApiRequest(options);
     })
     .then(parseJSON)
@@ -234,6 +238,7 @@ function startServer() {
       article.liked = true;
       return article.save();
     })
+    .catch(processMongodbOperationError)
     .then(() => {
       res.statusCode = 200;
       res.end();
@@ -247,6 +252,7 @@ function startServer() {
   })
 
   setInterval(function checkUpdatesAndRecalcVisitors() {
+    // cheching for updates on NewsApi every 5 minutes and puttting them into db
     const options = {
       from: lastUpdateAt.toISOString().slice(0,-5),
       pageSize: 100
@@ -286,15 +292,15 @@ function startServer() {
 
   logger.info('Preparing server to start');
   logger.info('Counting number articles in db')
-  // before giving a response to user we should convince that we have articles stored in our db
+  // before starting the server we should convince that we have articles stored in our db
   Article.count().then(function countArticlesInDb(count)  {
     if (count >= 20) {
       logger.info('We have enough articles in db, searching the newest article in db');
-      //searching the newest article in db
+      // if amount of articles id enough, searching the newest article in db
       return Article.find().sort('-publishedAt').limit(1).exec();
 
     } else {
-      // if it is first start of the server, and there is no articles in db, 
+      // if there is no articles in db, 
       // or we have just put some there manually, just drop articles collection
       logger.info('Number of articles in db is invalid, dropping the collection');
       return Article.deleteMany().exec();        
