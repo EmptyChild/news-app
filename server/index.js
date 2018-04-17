@@ -4,7 +4,7 @@ const webpack = require('webpack');
 const webpackDevMiddleware = require('webpack-dev-middleware');
 const webpackHotMiddleware = require('webpack-hot-middleware');
 const config = require('../webpack.dev.config');
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 const logger = require('./logger');
 const VError = require('verror').VError;
@@ -184,7 +184,7 @@ function startServer() {
         q: filter ? filter : ''
       }
       if(filter) {
-        logger.info(`No more news in db matching with "${filter}", requesting older news from NewsApi`);
+        logger.info(`No more news in db matching with "${filter}", requesting older news from NewsApi`)
       } else {
         logger.info(`No more news in db, requesting older news from NewsApi`);
       }

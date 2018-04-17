@@ -5,9 +5,9 @@
   "main": "server/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "set NODE_ENV=development&& nodemon server/index.js",
+    "dev": "cross-env NODE_ENV=development nodemon server/index.js",
     "start": "node server/index.js",
-    "build": "set NODE_ENV=production&& webpack --config webpack.prod.config.js"
+    "build": "cross-env NODE_ENV=production webpack --config webpack.prod.config.js"
   },
   "nodemonConfig": {
     "ignore": [

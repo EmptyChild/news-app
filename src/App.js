@@ -105,7 +105,6 @@ class App extends Component {
       // if we have filter applied, request new page of filtered articles, 
       // else regular page of articles
       const page = this.state.filter ? this.state.filteredPage : this.state.page;
-      console.log(page + 1);
       this.fetchArticles({ page: page + 1, filter: this.state.filter }, (parsedRes) => {
         this.setState((prevState) => {
           // if we have articles in response, set them to state according to filter and increase page or filtered page

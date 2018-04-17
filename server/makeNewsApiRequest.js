@@ -4,7 +4,7 @@ const VError = require('verror').VError;
 const logger = require('./logger');
 
 const defaultOptions = {
-  apiKey: '90a1c979bcb14acc868d6c829fe5bda7',
+  apiKey: process.env.NEWS_API_KEY,
   sources: ['bbc-news', 'bloomberg', 'entertainment-weekly', 'ign', 'wired'].join(','),
   language: 'en'
 }
