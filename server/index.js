@@ -10,6 +10,7 @@ const logger = require('./logger');
 const VError = require('verror').VError;
 const path = require('path');
 const Article = require('./ArticleModel');
+const ServerStats = require('./ServerStatsModel');
 const makeNewsApiRequest = require('./makeNewsApiRequest');
 
 const favicon = require('serve-favicon');
@@ -17,12 +18,38 @@ var app = express();
 
 app.use(favicon(path.join(__dirname, '../', '/dist/favicon-32x32.png')));
 
+
 let lastUpdateAt;
 let oldestArticleDate;
-let numberOfVisitors = 0;
 let currentDay = new Date();
-let daysRunning = 1;
-let visitorsPerDay = 0;
+
+
+let serverStats;
+ServerStats.findOne((err, stats) => {
+  if(err) {
+    logger.error(`Server stats not found!`)
+  }
+  if(stats) {
+    serverStats = stats
+  } else {
+    serverStats = new ServerStats({ 
+      numberOfVisitors: 0, 
+      daysRunning: 1, 
+      visitorsPerDay: 0,
+      lastServerStartDate: new Date()
+    });    
+  }
+  if(serverStats.lastServerStartDate.getDate() !== new Date().getDate()) {
+    serverStats.daysRunning += 1;
+  }
+  serverStats.lastServerStartDate = new Date();
+  serverStats.save((err) => {
+    if(err) {
+      logger.error(`Problem with saving server stats!`)
+    }
+  });
+})
+
 
 function parseJSON(jsonResponse) {
   try {
@@ -133,12 +160,13 @@ function fetchFreshArticlesPage(options) {
 function startServer() {
 
   app.get('/', function(req, res) {
-    numberOfVisitors++;
-    if(new Date().getDate() > currentDay.getDate()) {
-      currentDay = new Date();
-      daysRunning++;
-    }
-    visitorsPerDay = Math.floor(numberOfVisitors/daysRunning);
+    serverStats.numberOfVisitors += 1;
+    serverStats.visitorsPerDay = Math.floor(serverStats.numberOfVisitors/serverStats.daysRunning);
+    serverStats.save((err) => {
+      if(err) {
+        logger.error(`Problem with saving server stats!`)
+      }
+    });
     res.sendFile(path.join(__dirname, '../','/dist/index.html'))
   });
 
@@ -171,7 +199,7 @@ function startServer() {
       }
       increaseViews(articles);
       logger.info(`Sending page ${pagenumber} of news to user`);
-      res.json({articles, visitorsPerDay});
+      res.json({articles, visitorsPerDay: serverStats.visitorsPerDay});
       
       // if we successfully returned response for user, stopin execution of promises chain
       return Promise.reject();
@@ -219,7 +247,7 @@ function startServer() {
     .then(increaseViews)
     .then((articles) => {
       logger.info(`Sending page ${pagenumber} of news to user`);
-      res.json({articles, visitorsPerDay});     
+      res.json({articles, visitorsPerDay: serverStats.visitorsPerDay});     
     })
     .catch(function processErrorAndRespond(err) {
       // if we stopping promises chain execution with error, response to user with error
@@ -264,6 +292,11 @@ function startServer() {
       .then(insertArticlesIntoDb)
       .then(updateLastUdpateAtDate)
       .catch(processError);
+
+      if(new Date().getDate() > currentDay.getDate()) {
+        currentDay = new Date();
+        serverStats.daysRunning += 1;
+      }
   }, 5 * 60 * 1000)
 
   if(process.env.NODE_ENV === 'development') {  
