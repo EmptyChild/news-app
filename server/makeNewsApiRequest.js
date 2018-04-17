@@ -1,5 +1,6 @@
 const querystring = require('querystring');
 const https = require('https');
+const VError = require('verror').VError;
 const logger = require('./logger');
 
 const defaultOptions = {
@@ -13,7 +14,7 @@ module.exports = function makeNewsApiRequest(options) {
     ...defaultOptions,
     ...options
   }
-  return new Promise((resolve, reject) => {
+  return new Promise(function newsApiRequest(resolve, reject) {
     const request = https.get('https://newsapi.org/v2/everything?' + querystring.stringify(requestOptions), (newsApiResponse) => {
       newsApiResponse.setEncoding('utf8');
       let fullResponse = '';
@@ -28,10 +29,12 @@ module.exports = function makeNewsApiRequest(options) {
         resolve(fullResponse);
       });        
     });
-    request.on('error', (err) => {
-      err.statusCode = 502;
-      err.statusMessage = 'Unable to make a request to News Api';
-      reject(err);
+    request.on('error', function handleNewsApiRequestError(err) {
+      const error = new VError(err, 'Problem with making request to NewsApi');
+      error.stack = VError.fullStack(error);
+      error.statusCode = 502;
+      error.statusMessage = 'Unable to make a request to News Api';
+      reject(error);
     })
   });
 }

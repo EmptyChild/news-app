@@ -59,6 +59,14 @@ function processParsedResponse(parsedResponse) {
   }
 }
 
+function processMongodbOperationError(err) {
+  if(err) {
+    const error = new VError(err, 'Error while MongoDb operation');
+    error.stack = VError.fullStack(error);
+    return Promise.reject(error);
+  }
+}
+
 function insertArticlesIntoDb(parsedResponse) {           
   if(parsedResponse.articles.length) {          
     let articles = parsedResponse.articles.map( (article) => {
@@ -70,24 +78,15 @@ function insertArticlesIntoDb(parsedResponse) {
   });
   logger.info(`Putting ${articles.length} articles in db`);
   // after getting news from news api we store them in our db with "liked" and "numberOfVews" fields     
-  return Article.insertMany(articles, { ordered: false });
+  return Article.insertMany(articles, { ordered: false })
+    .catch(processMongodbOperationError);
   } else {
     logger.info('No news to put in db')
     return Promise.resolve([]);
   }
 }
 
-function increaseViews(articles) {
-  articles.forEach((article) => {
-    article.numberOfViews += 1;
-    article.save((err) => {
-      if(err) {
-        logger.error(err);
-      }
-    })
-  });
-  return articles;         
-}
+
 
 function updateLastUdpateAtDate() {
   lastUpdateAt = new Date();
@@ -106,11 +105,18 @@ function processError(err) {
   }
 }
 
-function processMongodbOperationError(err) {
-  if(err) {
-    const error = new VError(err, 'Error while MongoDb operation');
-    return Promise.reject(error);
-  }
+function increaseViews(articles) {
+  articles.forEach((article) => {
+    article.numberOfViews += 1;
+    article.save((err) => {
+      if(err) {
+        const error = new VError(err, 'Error while MongoDb operation');
+        error.stack = VError.fullStack(error);
+        logger.error(error);
+      }
+    })
+  });
+  return articles;         
 }
 
 function fetchFreshArticlesPage(options) {  
@@ -140,7 +146,6 @@ function startServer() {
     logger.info(`Recived request for page ${pagenumber} of news`);
     let promise = Promise.resolve();
     promise.then(function searchArticlesInDb() {
-      console.log(filter);
       if(!filter) {
         return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec()
           .catch(processMongodbOperationError);
@@ -193,16 +198,18 @@ function startServer() {
     })
     .then(processParsedResponse)
     .then(insertArticlesIntoDb)
-    .then(() => {
+    .then(function respondToUserAfterFetchingArticles() {
       if(!filter) {
-        return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+        return Article.find().sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec()
+        .catch(processMongodbOperationError);
       } else {
         return Article.find()
         .or([
           {title: {$regex: new RegExp(`${filter}`, 'i')}}, 
           {description: {$regex: new RegExp(`${filter}`, 'i')}}
         ])
-        .sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec();
+        .sort('-publishedAt').skip((pagenumber-1)*20).limit(20).exec()
+        .catch(processMongodbOperationError);
       }
     })
     .then(increaseViews)
@@ -293,6 +300,7 @@ function startServer() {
       return Article.deleteMany().exec();        
     }
   })
+  .catch(processMongodbOperationError)
   .then(function assignLastUpdateAt(articles) {
     // checking that we actually found an article from db
     if (articles && articles[0] && articles[0].publishedAt) {
@@ -304,7 +312,6 @@ function startServer() {
         from: lastUpdateAt.toISOString().slice(0,-5),
         pageSize: 100
       };
-      //return Promise.resolve()
       logger.info('Making request to NewsApi for fresh news')      
       return makeNewsApiRequest(options)
         .then(parseJSON)
@@ -341,6 +348,7 @@ function startServer() {
         .then(function findOldestArticleInDb() {
           logger.info('Searching the oldest article in db');
           return Article.find().sort('publishedAt').limit(1).exec()
+            .catch(processMongodbOperationError);
         })
         .then((articles) => {
           logger.info('Assigning oldestArticleDate');

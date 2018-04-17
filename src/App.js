@@ -80,7 +80,7 @@ class App extends Component {
       if(err) {
         console.error(err);
         this.setState({
-          fetchArticles: false,
+          fetchingArticles: false,
           noMoreArticles: true
         })
       }
@@ -104,18 +104,25 @@ class App extends Component {
         const page = this.state.filter ? this.state.filteredPage : this.state.page;
         this.fetchArticles({ page: page + 1, filter: this.state.filter }, (parsedRes) => {
           this.setState((prevState) => {
-            if(prevState.filter) {
-              return {
-                filteredArticles: prevState.filteredArticles.concat(parsedRes.articles),
-                page: prevState.filteredPage + 1,
-                fetchingArticles: false
-              };
+            if(parsedRes.articles.length) {
+              if(prevState.filter) {
+                return {
+                  filteredArticles: prevState.filteredArticles.concat(parsedRes.articles),
+                  page: prevState.filteredPage + 1,
+                  fetchingArticles: false
+                };
+              } else {
+                return {
+                  articles: prevState.articles.concat(parsedRes.articles),
+                  page: prevState.page + 1,
+                  fetchingArticles: false
+                };
+              }
             } else {
               return {
-                articles: prevState.articles.concat(parsedRes.articles),
-                page: prevState.page + 1,
-                fetchingArticles: false
-              };
+                fetchingArticles: false,
+                noMoreArticles: true
+              }
             }
           })
         })
