@@ -31,8 +31,8 @@ working example on heroku: https://breakingnews-app.herokuapp.com/
 
 ## Run App
 * Install and run MongoDB instance (https://www.mongodb.com/)
-* Get free NewsApi key (https://newsapi.org/)
+* Get free News API key (https://newsapi.org/)
 * open bash in this folder
 * `npm run build`
-* Run `MONGO_URI=[your MongoDB instance URI] NEWS_API_KEY=[your NewsApi Key] npm run start` in your bash command shell
+* Run `MONGO_URI=[your MongoDB instance URI] NEWS_API_KEY=[your News API Key] npm run start` in your bash command shell
 * open http://localhost:5000
