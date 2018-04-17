@@ -1,4 +1,4 @@
-# News App
+## News App
 Test task for SmartexLab
 working example on heroku: https://breakingnews-app.herokuapp.com/
 ## Plan
@@ -9,7 +9,7 @@ working example on heroku: https://breakingnews-app.herokuapp.com/
 5) 13.04.2018 - 15.04.2018 - Storage for number of views, visitors per day and "Liked" mark
 6) 16.04.2018 - 17.04.2018 - Resolving possible unexpected issues
 
-### Actual Work log
+## Actual Work log
 1) 02.04.2018 - Configure project structure, preparing boilerplate
 2) 03.04.2018 - 07.04.2018 - Header, Footer components, wrapper for articles list
 3) 07.04.2018 - 09.04.2018 - Article Component
@@ -20,18 +20,18 @@ working example on heroku: https://breakingnews-app.herokuapp.com/
 8) 16.04.2018 - Number of visitors per day, Filter logic rework, additional errors handlers and logging, refactoring
 9) 17.04.2018 - Refactoring and bug fixing, preparing for deployment
 
-#### Getting Started
+## Getting Started
 
 git clone https://github.com/EmptyChild/news-app.git
 
 
-##### Prerequisites
+## Prerequisites
 
 * Install [nodejs](https://nodejs.org/en/) (>= v6.9.4)
 * open bash in this folder
 * `npm install`
 
-###### Run App
+## Run App
 * Install and run MongoDB instance (https://www.mongodb.com/)
 * Achive free NewsApi key (https://newsapi.org/)
 * open bash in this folder
