@@ -138,7 +138,7 @@ class App extends Component {
     const articlesToRender = this.state.filter ? this.state.filteredArticles : this.state.articles;
     return (
       <MuiThemeProvider>
-        <div>
+        <div className='body'>
           <Header 
             submitFilterChange={this.submitFilterChange}
             searchDisabled={this.state.fetchingArticles}

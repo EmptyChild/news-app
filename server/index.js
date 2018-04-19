@@ -321,7 +321,7 @@ function startServer() {
 }
 
 
-(function firstServerLaunch() {
+function preparingServerToLaunch() {
 
   logger.info('Preparing server to start');
   logger.info('Counting number articles in db')
@@ -407,4 +407,6 @@ function startServer() {
   })
   .then(startServer)
   .catch(processError)
-})()
+}
+
+preparingServerToLaunch();
