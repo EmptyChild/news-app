@@ -37,6 +37,6 @@ const ArticleSchema = Schema({
   }
 }, { minimize: false });
 
-ArticleSchema.set('autoIndex', false);
+ArticleSchema.index({title: 1}, {unique: true});
 const Article = getDBConnection('Article', ArticleSchema);
 module.exports = Article;

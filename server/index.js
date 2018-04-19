@@ -405,8 +405,8 @@ function preparingServerToLaunch() {
       .then(updateLastUdpateAtDate);
     }    
   })
-  .then(startServer)
   .catch(processError)
+  .then(startServer)
 }
 
 preparingServerToLaunch();
